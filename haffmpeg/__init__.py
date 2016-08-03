@@ -1,0 +1,1 @@
+"""homeassistant ffmpeg shell wrapper."""
