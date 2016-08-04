@@ -7,16 +7,21 @@ import subprocess
 
 _LOGGER = logging.getLogger(__name__)
 
+ITER_STDOUT = 'OUT'
+ITER_STDERR = 'ERR'
+
 HAFFmpeg(object):
     """Base HA FFmpeg object."""
 
-    def __init__(self, ffmpeg_bin):
+    def __init__(self, ffmpeg_bin, chunk_size=1024, iter_input=ITER_STDOUT):
         """Base initialize."""
         self._ffmpeg = ffmpeg_bin
         self._argv = [ffmpeg_bin]
         self._popen = None
+        self._chunk_size = chunk_size
+        self._iter_input = iter_input
 
-    def _start(self, cmd, output="-", extra_cmd=None, text=False,
+    def open(self, cmd, output="-", extra_cmd=None, text=False,
                stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
         stdout = subprocess.PIPE if stdout_pipe else subprocess.DEVNULL
@@ -44,7 +49,7 @@ HAFFmpeg(object):
             universal_newlines=text
         )
 
-    def _stop(self, timeout=15):
+    def close(self, timeout=15):
         """Stop a ffmpeg instance."""
 
         if self._popen is None:
@@ -61,3 +66,12 @@ HAFFmpeg(object):
 
         # clean ffmpeg cmd
         self._argv = [self._ffmpeg]
+
+    def __iter__(self):
+        """Read data from ffmpeg PIPE/STDERR as iter."""
+        return self
+        
+    def __next__(self):
+        """Get next buffer data."""
+        
+        # raise StopIteration
