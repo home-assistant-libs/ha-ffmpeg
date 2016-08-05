@@ -6,7 +6,7 @@ with open('README.rst') as f:
 VERSION = "0.1"
 
 setup(
-    name='ha_ffmpeg',
+    name='ha-ffmpeg',
     version=VERSION,
     license='BSD License',
     author='Pascal Vizeli',
@@ -29,5 +29,6 @@ setup(
     keywords=['ffmpeg', 'homeassistant', 'wrapper', 'api'],
     zip_safe=False,
     platforms='any',
-    py_modules=['haffmpeg'],
+    packages=['haffmpeg'],
+    include_package_data=True,
 )
