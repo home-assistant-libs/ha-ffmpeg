@@ -11,8 +11,8 @@ setup(
     license='BSD License',
     author='Pascal Vizeli',
     author_email='pvizeli@syshack.ch',
-    url='https://github.com/pvizeli/ha_ffmpeg',
-    download_url='https://github.com/pvizeli/ha_ffmpeg/tarball/'+VERSION,
+    url='https://github.com/pvizeli/ha-ffmpeg',
+    download_url='https://github.com/pvizeli/ha-ffmpeg/tarball/'+VERSION,
     description=('A library that handling with ffmpeg for home-assistant'),
     long_description=long_description,
     classifiers=[
