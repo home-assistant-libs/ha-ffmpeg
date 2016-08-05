@@ -13,8 +13,7 @@ setup(
     author_email='pvizeli@syshack.ch',
     url='https://github.com/pvizeli/ha_ffmpeg',
     download_url='https://github.com/pvizeli/ha_ffmpeg/tarball/'+VERSION,
-    description=('a Python module that provides an interface to the Yahoo! '
-                 'Weather RSS feed.'),
+    description=('A library that handling with ffmpeg for home-assistant'),
     long_description=long_description,
     classifiers=[
         'Programming Language :: Python',
