@@ -86,6 +86,7 @@ class HAFFmpeg(object):
     def __next__(self):
         """Get next buffer data."""
         if self._proc is None or self._proc.poll() is not None:
+            _LOGGER.debug("don't exists data from a process.")
             raise StopIteration
 
         # generate reading from
@@ -96,6 +97,7 @@ class HAFFmpeg(object):
 
         # check if reading from pipe
         if read_from is None:
+            _LOGGER.critical("Iterator havn't data to  read from!")
             raise StopIteration
 
         return read_from.read(self._chunk_size)
