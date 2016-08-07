@@ -46,6 +46,7 @@ class HAFFmpeg(object):
         self._argv.append(output)
 
         # start ffmpeg
+        _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
         self._proc = subprocess.Popen(
             self._argv,
             stderr=stderr,
@@ -64,6 +65,7 @@ class HAFFmpeg(object):
 
         try:
             self._proc.wait(timeout=timeout)
+            _LOGGER.debug("Close FFmpeg process.")
         except subprocess.TimeoutExpired:
             _LOGGER.warning("Timeout while waiting of FFmpeg.")
 
