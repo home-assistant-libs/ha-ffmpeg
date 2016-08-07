@@ -9,11 +9,11 @@ class CameraMjpeg(HAFFmpeg):
         """Init CameraMjpeg."""
         HAFFmpeg.__init__(self, ffmpeg_bin=ffmpeg_bin)
 
-    def open_camera(self, input_data, extra_cmd=None):
+    def open_camera(self, input_source, extra_cmd=None):
         """Open FFmpeg process as mjpeg video stream."""
         command = [
             "-i",
-            input_data,
+            input_source,
             "-an",
             "-c:v",
             "mjpeg"
