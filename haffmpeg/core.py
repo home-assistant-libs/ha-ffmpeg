@@ -1,6 +1,5 @@
 """Base functionality of ffmpeg HA wrapper."""
 import logging
-import os
 import shlex
 import signal
 import subprocess
@@ -63,17 +62,13 @@ class HAFFmpeg(object):
             return
 
         # send stop to ffmpeg
-        if os.name == 'nt':
-            self._proc.terminate()
-        else:
-            self._proc.send_signal(signal.SIGINT)
+        self._proc.kill()
 
         try:
             self._proc.wait(timeout=timeout)
             _LOGGER.debug("Close FFmpeg process.")
         except subprocess.TimeoutExpired:
             _LOGGER.warning("Timeout while waiting of FFmpeg.")
-            self._proc.kill()
 
         # clean ffmpeg cmd
         self._argv = [self._ffmpeg]
