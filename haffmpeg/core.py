@@ -36,7 +36,7 @@ class HAFFmpeg(object):
             return
 
         # add cmds
-        self._argv.append(cmd)
+        self._argv.extend(cmd)
 
         # exists a extra cmd from customer
         if extra_cmd is not None:
