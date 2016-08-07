@@ -16,7 +16,9 @@ class CameraMjpeg(HAFFmpeg):
             input_source,
             "-an",
             "-c:v",
-            "mjpeg"
+            "mjpeg",
+            "-f",
+            "mpjpeg"
         ]
 
         self.open(cmd=command, extra_cmd=extra_cmd)
