@@ -57,7 +57,7 @@ class HAFFmpeg(object):
 
     def close(self, timeout=5):
         """Stop a ffmpeg instance."""
-        if self._proc is None:
+        if self._proc is None or self._proc.poll() is not None:
             _LOGGER.error("FFmpeg isn't running!")
             return
 
