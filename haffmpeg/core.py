@@ -21,9 +21,10 @@ class HAFFmpeg(object):
         """Base initialize."""
         self._ffmpeg = ffmpeg_bin
         self._argv = [ffmpeg_bin]
-        self._proc = None
         self._chunk_size = chunk_size
         self._iter_input = iter_input
+        self._bin_mode = None
+        self._proc = None
 
     # pylint: disable=too-many-arguments
     def open(self, cmd, output="-", extra_cmd=None, text=False,
@@ -52,8 +53,12 @@ class HAFFmpeg(object):
             self._argv,
             stderr=stderr,
             stdout=stdout,
+            stdin=subprocess.PIPE,
             universal_newlines=text
         )
+
+        # save bin/text mode of process
+        self._bin_mode = False if text else True
 
     def close(self, timeout=5):
         """Stop a ffmpeg instance."""
@@ -61,18 +66,22 @@ class HAFFmpeg(object):
             _LOGGER.error("FFmpeg isn't running!")
             return
 
-        # send stop to ffmpeg
-        self._proc.kill()
+        # set stop command for ffmpeg
+        stop = b'q' if self._bin_mode else 'q'
 
         try:
-            self._proc.wait(timeout=timeout)
+            # send stop to ffmpeg
+            self._proc.communicate(input=stop, timeout=timeout)
             _LOGGER.debug("Close FFmpeg process.")
         except subprocess.TimeoutExpired:
             _LOGGER.warning("Timeout while waiting of FFmpeg.")
+            self._proc.kill()
+            self._proc.wait()
 
         # clean ffmpeg cmd
         self._argv = [self._ffmpeg]
         self._proc = None
+        self._bin_mode = None
 
     @property
     def process(self):
