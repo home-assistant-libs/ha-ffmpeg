@@ -9,9 +9,6 @@ import threading
 
 _LOGGER = logging.getLogger(__name__)
 
-ITER_STDOUT = 'OUT'
-ITER_STDERR = 'ERR'
-
 
 class HAFFmpeg(object):
     """Base HA FFmpeg process.
@@ -20,12 +17,11 @@ class HAFFmpeg(object):
     process property to call from Popen object.
     """
 
-    def __init__(self, ffmpeg_bin, chunk_size=1024, iter_input=ITER_STDOUT):
+    def __init__(self, ffmpeg_bin, chunk_size=1024):
         """Base initialize."""
         self._ffmpeg = ffmpeg_bin
         self._argv = [ffmpeg_bin]
         self._chunk_size = chunk_size
-        self._iter_input = iter_input
         self._bin_mode = None
         self._proc = None
 
@@ -36,7 +32,7 @@ class HAFFmpeg(object):
         stdout = subprocess.PIPE if stdout_pipe else subprocess.DEVNULL
         stderr = subprocess.PIPE if stderr_pipe else subprocess.DEVNULL
 
-        if self._proc is not None:
+        if self.is_running:
             _LOGGER.critical("FFmpeg is allready running!")
             return
 
@@ -68,7 +64,7 @@ class HAFFmpeg(object):
 
     def close(self, timeout=5):
         """Stop a ffmpeg instance."""
-        if self._proc is None or self._proc.poll() is not None:
+        if not self.is_running:
             _LOGGER.error("FFmpeg isn't running!")
             return
 
@@ -94,42 +90,70 @@ class HAFFmpeg(object):
         """Return a Popen object or None of not running."""
         return self._proc
 
+    @property
+    def is_running(self):
+        """Return True if ffmpeg is running."""
+        if self._proc is None or self._proc.poll() is not None:
+            return False
+        return True
+
     def __iter__(self):
         """Read data from ffmpeg PIPE/STDERR as iter."""
         return self
 
     def __next__(self):
         """Get next buffer data."""
-        if self._proc is None or self._proc.poll() is not None:
+        if not self.is_running:
             _LOGGER.debug("don't exists data from a process.")
             raise StopIteration
 
-        # generate reading from
-        if self._iter_input == ITER_STDERR:
-            read_from = self._proc.stderr
-        else:
-            read_from = self._proc.stdout
-
         # check if reading from pipe
-        if read_from is None:
+        if self._proc.stdout is None:
             _LOGGER.critical("Iterator havn't data to  read from!")
             raise StopIteration
 
-        return read_from.read(self._chunk_size)
+        return self._proc.stdout.read(self._chunk_size)
 
 
 class HAFFmpegQue(object):
     """Read FFmpeg STDERR output to QUE."""
 
-    def __init__(self, ffmpeg_bin, chunk_size=1024, iter_input=ITER_STDOUT):
+    def __init__(self, ffmpeg_bin, chunk_size=1024):
     """Base initialize."""
-        super().__init__(ffmpeg_bin, chunk_size, iter_input)
+        super().__init__(ffmpeg_bin, chunk_size)
 
         self._que = queue.Queue()
         self._queThread = None
 
     def _readLinesToQue(pattern=None):
         """Read line from STDERR to Que they match with pattern / thread."""
+        if pattern is not None:
+            cmp = re.compile(pattern)
+
+        # read lines
+        while self.is_running:
+            line = self._proc.stderr.readline()
+
+            match = True if pattern is None else cmp.serach(line)
+            if match:
+                try:
+                    self._que.put(line, block=False)
+                except queue.Full:
+                    _LOGGER.warning("Queue is full...")
 
     def startReadingQue(pattern=None):
         """Read line from STDERR to Que they match with pattern."""
+        if self._queThread is not None:
+            _LOGGER.critical("Thread is allready running now!")
+            return
+        if self._bin_mode:
+            _LOGGER.critical("ReadingQue not support ob Binmode!")
+            return
+
+        self._queThread = threading.Thread(
+            target=self._readLinesToQue,
+            kwargs={'pattern': pattern}
+        )
+
+        self._queThread.start()
+        _LOGGER.debug("Start Thread. Pattern: %s", pattern)
