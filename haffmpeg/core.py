@@ -45,7 +45,10 @@ class HAFFmpeg(object):
             self._argv.extend(shlex.split(extra_cmd))
 
         # add output
-        self._argv.append(output)
+        if output is None:
+            self._argv.extend(['-f', 'null', '-'])
+        else:
+            self._argv.append(output)
 
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
