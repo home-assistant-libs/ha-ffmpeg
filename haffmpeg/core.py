@@ -1,8 +1,11 @@
 """Base functionality of ffmpeg HA wrapper."""
 import logging
+import queue
+import re
 import shlex
 import signal
 import subprocess
+import threading
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,3 +116,20 @@ class HAFFmpeg(object):
             raise StopIteration
 
         return read_from.read(self._chunk_size)
+
+
+class HAFFmpegQue(object):
+    """Read FFmpeg STDERR output to QUE."""
+
+    def __init__(self, ffmpeg_bin, chunk_size=1024, iter_input=ITER_STDOUT):
+    """Base initialize."""
+        super().__init__(ffmpeg_bin, chunk_size, iter_input)
+
+        self._que = queue.Queue()
+        self._queThread = None
+
+    def _readLinesToQue(pattern=None):
+        """Read line from STDERR to Que they match with pattern / thread."""
+
+    def startReadingQue(pattern=None):
+        """Read line from STDERR to Que they match with pattern."""
