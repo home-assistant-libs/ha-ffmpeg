@@ -3,12 +3,12 @@ import logging
 import queue
 import re
 import shlex
-import signal
 import subprocess
 import threading
 
 _LOGGER = logging.getLogger(__name__)
 
+HAFFMPEG_QUEUE_END = '!HAFFMPEG_QUEUE_END!'
 
 class HAFFmpeg(object):
     """Base HA FFmpeg process.
@@ -46,6 +46,12 @@ class HAFFmpeg(object):
         # add output
         if output is None:
             self._argv.extend(['-f', 'null', '-'])
+
+            # output to null / copy audio/audio for muxer
+            if '-an' not in self._argv:
+                self._argv.extend(['-c:a', 'copy'])
+            if '-av' not in self._argv:
+                self._argv.extend(['-c:v', 'copy'])
         else:
             self._argv.append(output)
 
@@ -115,7 +121,7 @@ class HAFFmpeg(object):
         return self._proc.stdout.read(self._chunk_size)
 
 
-class HAFFmpegQue(object):
+class HAFFmpegQue(HAFFmpeg):
     """Read FFmpeg STDERR output to QUE."""
 
     def __init__(self, ffmpeg_bin, chunk_size=1024):
@@ -141,6 +147,9 @@ class HAFFmpegQue(object):
                 except queue.Full:
                     _LOGGER.warning("Queue is full...")
 
+        # send end to reader of queue
+        self._que.put(HAFFMPEG_QUEUE_END)
+
     def startReadingQue(pattern=None):
         """Read line from STDERR to Que they match with pattern."""
         if self._queThread is not None:
@@ -156,4 +165,34 @@ class HAFFmpegQue(object):
         )
 
         self._queThread.start()
-        _LOGGER.debug("Start Thread. Pattern: %s", pattern)
+        _LOGGER.debug("Start thread. Pattern: %s", pattern)
+
+
+class HAFFmpegWorker(HAFFmpegQue):
+    """Process Que data into a thread."""
+
+    def __init__(self, ffmpeg_bin, chunk_size=1024):
+    """Base initialize."""
+        super().__init__(ffmpeg_bin, chunk_size)
+
+        self._workerThread = None
+
+    def startWorker(self, command, output=None, extra_cmd=None, pattern=None):
+        """Start ffmpeg process with que and process data."""
+        if self._workerThread is not None and self._workerThread.is_alive():
+            _LOGGER.warning("Can't start worker. It is allready running!")
+            return
+
+        # start ffmpeg and reading to queue
+        self.open(command=command, output=output, extra_cmd=extra_cmd)
+        self.startReadingQue(pattern=pattern)
+        self._workerThread = threading.Thread(
+            target=self._worker_process
+        )
+
+        self._workerThread.start()
+        _LOGGER.debug("Start working thread.")
+
+    def _worker_process(self):
+        """This function run in thread for process que data."""
+        raise NotImplemented
