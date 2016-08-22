@@ -43,14 +43,28 @@ class HAFFmpeg(object):
         if extra_cmd is not None:
             self._argv.extend(shlex.split(extra_cmd))
 
+        # cleanup filters
+        for opts in (['-filter:a', '-af'], ['-filter:v', '-vf']):
+            str_filter = ""
+            new_argv = []
+            for element in self._argv:
+                if element in opts:
+                    str_filter = "{1},{0}".filters(str_filter,
+                                                   self._argv.next())
+                else:
+                    new_argv.append(element)
+            # update argv list
+            new_argv.extend([opts[0], str_filter])
+            self._argv = new_argv.copy()
+
         # add output
         if output is None:
             self._argv.extend(['-f', 'null', '-'])
 
             # output to null / copy audio/audio for muxer
-            if '-an' not in self._argv:
+            if '-an' in self._argv:
                 self._argv.extend(['-c:a', 'copy'])
-            if '-av' not in self._argv:
+            if '-av' in self._argv:
                 self._argv.extend(['-c:v', 'copy'])
         else:
             self._argv.append(output)

@@ -1,11 +1,20 @@
 """For HA camera components."""
+import logging
+import queue
 import re
 
 from .core import HAFFmpegWorker, HAFFMPEG_QUEUE_END
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class SensorNoise(HAFFmpegWorker):
     """Implement a noise detection on a autio stream."""
+
+    STATE_NONE = 0
+    STATE_NOISE = 1
+    STATE_END = 2
+    STATE_DETECT = 3
 
     def __init__(self, ffmpeg_bin, callback):
         """Init CameraMjpeg."""
@@ -34,7 +43,7 @@ class SensorNoise(HAFFmpegWorker):
             "-i",
             input_source,
             "-vn",
-            "-af",
+            "-filter:a",
             "silencedetect=n={}dB:d=1".format(self._peak)
         ]
 
@@ -44,15 +53,52 @@ class SensorNoise(HAFFmpegWorker):
 
     def _worker_process(self):
         """This function run in thread for process que data."""
-        noise_detect = False
-        detect_time = None
+        state = self.STATE_NONE
+        last_time = None
+        timeout = None
 
-        re_start = re.compile("")
-        re_end = re.compile("")
+        re_start = re.compile("silent_start")
+        re_end = re.compile("silent_end")
 
+        # process queue data
         while True:
-            data = self._que.get()
+            try:
+                data = self._que.get(block=True, timeout=timeout)
+                timeout = None
+                if data == HAFFMPEG_QUEUE_END:
+                    return
+            except queue.Empty:
+                # noise
+                if state == self.STATE_DETECT:
+                    # noise detected
+                    self._callback(True)
+                    state = self.STATE_NOISE
 
-            # program close?
-            if data == HAFFMPEG_QUEUE_END:
-                return
+                elif state == self.STATE_END:
+                    # no noise
+                    self._callback(False)
+                    state = self.STATE_NONE
+
+                timeout = None
+                continue
+
+        if re_start.search(data):
+            if state == self.STATE_NOISE:
+                # stop noise detection
+                state = self.STATE_END
+                timeout = self._time_reset
+            if state == self.STATE_DETECT:
+                # reset if only a peak
+                state = self.STATE_NONE
+
+            continue
+
+        if re_end.search(data):
+            if state == self.STATE_NONE:
+                # detect noise begin
+                state = self.STATE_DETECT
+                timeout = self._time_duration
+
+            continue
+
+        _LOGGER.warning("Unknown data from queue!")
