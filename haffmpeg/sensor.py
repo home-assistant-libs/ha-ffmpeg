@@ -29,13 +29,10 @@ class SensorNoise(HAFFmpegWorker):
     def peak(self, val):
         self._peak = val
 
-    @time_duration.setter
-    def time_duration(self, val):
-        self._time_duration = val
-
-    @time_reset.setter
-    def time_reset(self, val):
-        self._time_reset = val
+    def set_options(self, time_duration=1, time_reset=2):
+        """Set option parameter for noise sensor."""
+        self._time_duration = time_duration
+        self._time_reset = time_reset
 
     def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
         """Open FFmpeg process as mjpeg video stream."""
@@ -54,7 +51,6 @@ class SensorNoise(HAFFmpegWorker):
     def _worker_process(self):
         """This function run in thread for process que data."""
         state = self.STATE_NONE
-        last_time = None
         timeout = None
 
         re_start = re.compile("silent_start")
@@ -82,23 +78,21 @@ class SensorNoise(HAFFmpegWorker):
                 timeout = None
                 continue
 
-        if re_start.search(data):
-            if state == self.STATE_NOISE:
-                # stop noise detection
-                state = self.STATE_END
-                timeout = self._time_reset
-            if state == self.STATE_DETECT:
-                # reset if only a peak
-                state = self.STATE_NONE
+            if re_start.search(data):
+                if state == self.STATE_NOISE:
+                    # stop noise detection
+                    state = self.STATE_END
+                    timeout = self._time_reset
+                if state == self.STATE_DETECT:
+                    # reset if only a peak
+                    state = self.STATE_NONE
+                continue
 
-            continue
-
-        if re_end.search(data):
-            if state == self.STATE_NONE:
-                # detect noise begin
-                state = self.STATE_DETECT
-                timeout = self._time_duration
-
-            continue
+            if re_end.search(data):
+                if state == self.STATE_NONE:
+                    # detect noise begin
+                    state = self.STATE_DETECT
+                    timeout = self._time_duration
+                continue
 
         _LOGGER.warning("Unknown data from queue!")
