@@ -192,14 +192,14 @@ class HAFFmpegWorker(HAFFmpegQue):
 
         self._worker_thread = None
 
-    def start_worker(self, command, output=None, extra_cmd=None, pattern=None):
+    def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None):
         """Start ffmpeg process with que and process data."""
         if self._worker_thread is not None and self._worker_thread.is_alive():
             _LOGGER.warning("Can't start worker. It is allready running!")
             return
 
         # start ffmpeg and reading to queue
-        self.open(command=command, output=output, extra_cmd=extra_cmd)
+        self.open(cmd=cmd, output=output, extra_cmd=extra_cmd)
         self.start_reading_que(pattern=pattern)
         self._worker_thread = threading.Thread(
             target=self._worker_process

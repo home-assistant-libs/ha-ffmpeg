@@ -45,8 +45,8 @@ class SensorNoise(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        self.startWorker(cmd=command, output=output_dest, extra_cmd=extra_cmd,
-                         pattern="silent")
+        self.start_worker(cmd=command, output=output_dest, extra_cmd=extra_cmd,
+                          pattern="silent")
 
     def _worker_process(self):
         """This function run in thread for process que data."""
