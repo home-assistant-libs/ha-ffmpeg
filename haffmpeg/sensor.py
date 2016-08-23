@@ -27,6 +27,7 @@ class SensorNoise(HAFFmpegWorker):
 
     @property
     def peak(self, val):
+        """Set peak level in dB."""
         self._peak = val
 
     def set_options(self, time_duration=1, time_reset=2):
