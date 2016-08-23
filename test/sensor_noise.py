@@ -1,6 +1,8 @@
 import logging
 import click
 
+from time import sleep
+
 from ../haffmpeg import SensorNoise
 
 @click.command()
@@ -12,7 +14,7 @@ from ../haffmpeg import SensorNoise
 @click.option("--reset", "-r", default=2, type=int,
               help="Time of silent to set the end of detection")
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
-@click.option("--wait", "-w", default=10, type=int,
+@click.option("--wait", "-w", default=30, type=int,
               help="Run sensor for seconds")
 def cli(ffmpeg, source, output, duration, reset, extra, wait):
     """FFMPEG noise detection."""
@@ -25,7 +27,7 @@ def cli(ffmpeg, source, output, duration, reset, extra, wait):
     sensor.open_sensor(input_source=source, output_dest=output, extra_cmd=extra)
 
     # wait
-
+    sleep(wait)
     sensor.close()
 
 if __name__ == "__main__":
