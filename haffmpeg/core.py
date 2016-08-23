@@ -158,6 +158,7 @@ class HAFFmpegQue(HAFFmpeg):
             match = True if pattern is None else cmp.serach(line)
             if match:
                 try:
+                    _LOGGER.debug("Put do que: %s", line)
                     self._que.put(line, block=False)
                 except queue.Full:
                     _LOGGER.warning("Queue is full...")

@@ -59,11 +59,13 @@ class SensorNoise(HAFFmpegWorker):
         # process queue data
         while True:
             try:
+                _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
                 data = self._que.get(block=True, timeout=timeout)
                 timeout = None
                 if data == HAFFMPEG_QUEUE_END:
                     return
             except queue.Empty:
+                _LOGGER.debug("Blocking timeout")
                 # noise
                 if state == self.STATE_DETECT:
                     # noise detected
