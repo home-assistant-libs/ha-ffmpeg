@@ -46,18 +46,19 @@ class HAFFmpeg(object):
 
         # cleanup filters
         for opts in (['-filter:a', '-af'], ['-filter:v', '-vf']):
-            str_filter = ""
+            filter_list = []
             new_argv = []
             cmd_iter = iter(self._argv)
             for element in cmd_iter:
                 if element in opts:
-                    str_filter = "{1},{0}".format(str_filter,
-                                                  next(cmd_iter))
+                    filter_list.insert(0, next(cmd_iter))
                 else:
                     new_argv.append(element)
-            # update argv list
-            new_argv.extend([opts[0], str_filter])
-            self._argv = new_argv.copy()
+
+            # update argv if changes
+            if filter_list:
+                new_argv.extend([opts[0], ",".join(filter_list)])
+                self._argv = new_argv.copy()
 
         # add output
         if output is None:
@@ -171,10 +172,10 @@ class HAFFmpegQue(HAFFmpeg):
         """Read line from STDERR to Que they match with pattern."""
         if self._que_thread is not None:
             _LOGGER.critical("Thread is allready running now!")
-            return
-        if self._bin_mode:
+            return False
+        elif self._bin_mode:
             _LOGGER.critical("ReadingQue not support ob Binmode!")
-            return
+            return False
 
         self._que_thread = threading.Thread(
             target=self._read_lines_to_que,
@@ -183,6 +184,7 @@ class HAFFmpegQue(HAFFmpeg):
 
         self._que_thread.start()
         _LOGGER.debug("Start thread. Pattern: %s", pattern)
+        return True
 
 
 class HAFFmpegWorker(HAFFmpegQue):
@@ -201,12 +203,13 @@ class HAFFmpegWorker(HAFFmpegQue):
             return
 
         # start ffmpeg and reading to queue
-        self.open(cmd=cmd, output=output, extra_cmd=extra_cmd)
-        self.start_reading_que(pattern=pattern)
-        self._worker_thread = threading.Thread(
-            target=self._worker_process
-        )
+        self.open(cmd=cmd, output=output, extra_cmd=extra_cmd,
+                  stdout_pipe=False, stderr_pipe=True)
+        if not self.start_reading_que(pattern=pattern):
+            _LOGGER.warning("Can't start worker if queue is not running!")
+            return
 
+        self._worker_thread = threading.Thread(target=self._worker_process)
         self._worker_thread.start()
         _LOGGER.debug("Start working thread.")
 
