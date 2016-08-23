@@ -18,7 +18,7 @@ class SensorNoise(HAFFmpegWorker):
 
     def __init__(self, ffmpeg_bin, callback):
         """Init noise sensor."""
-        super().__init__(self, ffmpeg_bin)
+        super().__init__(ffmpeg_bin)
 
         self._callback = callback
         self._peak = -30
