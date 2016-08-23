@@ -25,15 +25,11 @@ class SensorNoise(HAFFmpegWorker):
         self._time_duration = 1
         self._time_reset = 2
 
-    @property
-    def peak(self, val):
-        """Set peak level in dB."""
-        self._peak = val
-
-    def set_options(self, time_duration=1, time_reset=2):
+    def set_options(self, time_duration=1, time_reset=2, peak=-30):
         """Set option parameter for noise sensor."""
         self._time_duration = time_duration
         self._time_reset = time_reset
+        self._peak = peak
 
     def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
         """Open FFmpeg process as mjpeg video stream."""
@@ -47,15 +43,15 @@ class SensorNoise(HAFFmpegWorker):
 
         # run ffmpeg, read output
         self.start_worker(cmd=command, output=output_dest, extra_cmd=extra_cmd,
-                          pattern="silent")
+                          pattern="silence")
 
     def _worker_process(self):
         """This function run in thread for process que data."""
         state = self.STATE_NONE
         timeout = None
 
-        re_start = re.compile("silent_start")
-        re_end = re.compile("silent_end")
+        re_start = re.compile("silence_start")
+        re_end = re.compile("silence_end")
 
         # process queue data
         while True:

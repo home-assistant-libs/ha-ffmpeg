@@ -63,12 +63,6 @@ class HAFFmpeg(object):
         # add output
         if output is None:
             self._argv.extend(['-f', 'null', '-'])
-
-            # output to null / copy audio/audio for muxer
-            if '-an' in self._argv:
-                self._argv.extend(['-c:a', 'copy'])
-            if '-av' in self._argv:
-                self._argv.extend(['-c:v', 'copy'])
         else:
             self._argv.append(output)
 
@@ -155,9 +149,12 @@ class HAFFmpegQue(HAFFmpeg):
 
         # read lines
         while self.is_running:
-            line = self._proc.stderr.readline()
+            try:
+                line = self._proc.stderr.readline()
+            except Exception:
+                break
 
-            match = True if pattern is None else cmp.serach(line)
+            match = True if pattern is None else cmp.search(line)
             if match:
                 try:
                     _LOGGER.debug("Put do que: %s", line)
