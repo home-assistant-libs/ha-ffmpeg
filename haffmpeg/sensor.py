@@ -82,7 +82,7 @@ class SensorNoise(HAFFmpegWorker):
                     # stop noise detection
                     state = self.STATE_END
                     timeout = self._time_reset
-                if state == self.STATE_DETECT:
+                elif state == self.STATE_DETECT:
                     # reset if only a peak
                     state = self.STATE_NONE
                 continue
@@ -92,6 +92,9 @@ class SensorNoise(HAFFmpegWorker):
                     # detect noise begin
                     state = self.STATE_DETECT
                     timeout = self._time_duration
+                elif state == self.STATE_END:
+                    # back to noise status
+                    state = self.STATE_NOISE
                 continue
 
         _LOGGER.warning("Unknown data from queue!")
