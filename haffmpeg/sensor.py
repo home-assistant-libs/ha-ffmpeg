@@ -47,8 +47,8 @@ class SensorNoise(HAFFmpegWorker):
 
     def _worker_process(self):
         """This function run in thread for process que data."""
-        state = self.STATE_NONE
-        timeout = None
+        state = self.STATE_DETECT
+        timeout = self._time_duration
 
         re_start = re.compile("silence_start")
         re_end = re.compile("silence_end")
