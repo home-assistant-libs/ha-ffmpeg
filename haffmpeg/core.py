@@ -204,7 +204,7 @@ class HAFFmpegWorker(HAFFmpegQue):
 
         # start ffmpeg and reading to queue
         self.open(cmd=cmd, output=output, extra_cmd=extra_cmd,
-                  stdout_pipe=False, stderr_pipe=True)
+                  stdout_pipe=False, stderr_pipe=True, text=True)
         if not self.start_reading_que(pattern=pattern):
             _LOGGER.warning("Can't start worker if queue is not running!")
             return
