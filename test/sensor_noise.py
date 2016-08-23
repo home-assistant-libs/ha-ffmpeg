@@ -5,6 +5,8 @@ from time import sleep
 
 from ../haffmpeg import SensorNoise
 
+logging.basicConfig(level=logging.DEBUG)
+
 @click.command()
 @click.option("--ffmpeg", "-f", default="ffmpeg", help="FFmpeg binary")
 @click.option("--source", "-s", help="Input file for ffmpeg")
