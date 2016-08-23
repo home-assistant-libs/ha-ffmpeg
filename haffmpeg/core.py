@@ -48,10 +48,11 @@ class HAFFmpeg(object):
         for opts in (['-filter:a', '-af'], ['-filter:v', '-vf']):
             str_filter = ""
             new_argv = []
-            for element in self._argv:
+            cmd_iter = iter(self._argv)
+            for element in cmd_iter:
                 if element in opts:
                     str_filter = "{1},{0}".format(str_filter,
-                                                  next(self._argv))
+                                                  next(cmd_iter))
                 else:
                     new_argv.append(element)
             # update argv list
@@ -141,7 +142,7 @@ class HAFFmpegQue(HAFFmpeg):
 
     def __init__(self, ffmpeg_bin, chunk_size=1024):
         """Base initialize."""
-        super().__init__(ffmpeg_bin, chunk_size)
+        super().__init__(ffmpeg_bin, chunk_size=chunk_size)
 
         self._que = queue.Queue()
         self._que_thread = None

@@ -1,9 +1,11 @@
 import logging
+import sys
 import click
 
 from time import sleep
 
-from ../haffmpeg import SensorNoise
+sys.path.append("../")
+from haffmpeg import SensorNoise
 
 @click.command()
 @click.option("--ffmpeg", "-f", default="ffmpeg", help="FFmpeg binary")
@@ -32,3 +34,4 @@ def cli(ffmpeg, source, output, duration, reset, extra, wait):
 
 if __name__ == "__main__":
     cli()
+

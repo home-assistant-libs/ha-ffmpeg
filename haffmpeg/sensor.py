@@ -17,8 +17,8 @@ class SensorNoise(HAFFmpegWorker):
     STATE_DETECT = 3
 
     def __init__(self, ffmpeg_bin, callback):
-        """Init CameraMjpeg."""
-        super().__init__(self, ffmpeg_bin=ffmpeg_bin)
+        """Init noise sensor."""
+        super().__init__(self, ffmpeg_bin)
 
         self._callback = callback
         self._peak = -30
