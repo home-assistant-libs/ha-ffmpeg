@@ -211,4 +211,4 @@ class HAFFmpegWorker(HAFFmpegQue):
 
     def _worker_process(self):
         """Function run in thread for process que data."""
-        raise NotImplemented
+        raise NotImplementedError
