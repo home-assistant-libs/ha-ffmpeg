@@ -116,7 +116,7 @@ class SensorMotion(HAFFmpegWorker):
 
         self._callback = callback
         self._changes = 10
-        self._time_duration = 60
+        self._time_reset = 60
         self._time_repeat = 0
         self._repeat = 0
 
@@ -135,7 +135,7 @@ class SensorMotion(HAFFmpegWorker):
             input_source,
             "-an",
             "-filter:v",
-            "select=gt(scene\,{0})".format(self._changes / 100),
+            "select=gt(scene\\,{0})".format(self._changes / 100),
             "-hash",
             "md5",
             "-f",
@@ -209,7 +209,6 @@ class SensorMotion(HAFFmpegWorker):
                         _LOGGER.debug("Reset repeat to none")
                         state = self.STATE_NONE
                         timeout = None
-
 
                 continue
 
