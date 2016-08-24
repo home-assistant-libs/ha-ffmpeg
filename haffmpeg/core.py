@@ -10,6 +10,9 @@ _LOGGER = logging.getLogger(__name__)
 
 HAFFMPEG_QUEUE_END = '!HAFFMPEG_QUEUE_END!'
 
+FFMPEG_STDERR = 'stderr'
+FFMPEG_STDOUT = 'stdout'
+
 
 class HAFFmpeg(object):
     """Base HA FFmpeg process.
@@ -141,16 +144,17 @@ class HAFFmpegQue(HAFFmpeg):
 
         self._que = queue.Queue()
         self._que_thread = None
+        self._reading = None
 
     def _read_lines_to_que(self, pattern=None):
-        """Read line from STDERR to Que they match with pattern / thread."""
+        """Read line from pipe to Que they match with pattern / thread."""
         if pattern is not None:
             cmp = re.compile(pattern)
 
         # read lines
         while self.is_running:
             try:
-                line = self._proc.stderr.readline()
+                line = self._reading.readline()
             except Exception:
                 break
 
@@ -165,7 +169,7 @@ class HAFFmpegQue(HAFFmpeg):
         # send end to reader of queue
         self._que.put(HAFFMPEG_QUEUE_END)
 
-    def start_reading_que(self, pattern=None):
+    def start_reading_que(self, pattern=None, reading=FFMPEG_STDERR):
         """Read line from STDERR to Que they match with pattern."""
         if self._que_thread is not None:
             _LOGGER.critical("Thread is allready running now!")
@@ -174,13 +178,21 @@ class HAFFmpegQue(HAFFmpeg):
             _LOGGER.critical("ReadingQue not support ob Binmode!")
             return False
 
+        # create thread
         self._que_thread = threading.Thread(
             target=self._read_lines_to_que,
             kwargs={'pattern': pattern}
         )
 
+        # set reading from
+        if reading == FFMPEG_STDOUT:
+            self._reading = self._proc.stdout
+        else:
+            self._reading = self._proc.stderr
+
+        # process data
         self._que_thread.start()
-        _LOGGER.debug("Start thread. Pattern: %s", pattern)
+        _LOGGER.debug("Start thread from %s. Pattern: %s", reading, pattern)
         return True
 
 
@@ -193,16 +205,25 @@ class HAFFmpegWorker(HAFFmpegQue):
 
         self._worker_thread = None
 
-    def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None):
+    def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None,
+                     reading=FFMPEG_STDERR):
         """Start ffmpeg process with que and process data."""
         if self._worker_thread is not None and self._worker_thread.is_alive():
             _LOGGER.warning("Can't start worker. It is allready running!")
             return
 
+        # set PIPE configs
+        if reading == FFMPEG_STDERR:
+            pip_std = False
+            pip_err = True
+        else:
+            pip_std = True
+            pip_err = False
+
         # start ffmpeg and reading to queue
         self.open(cmd=cmd, output=output, extra_cmd=extra_cmd,
-                  stdout_pipe=False, stderr_pipe=True, text=True)
-        if not self.start_reading_que(pattern=pattern):
+                  stdout_pipe=pip_std, stderr_pipe=pip_err, text=True)
+        if not self.start_reading_que(pattern=pattern, reading=reading):
             _LOGGER.warning("Can't start worker if queue is not running!")
             return
 

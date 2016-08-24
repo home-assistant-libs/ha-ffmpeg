@@ -3,7 +3,7 @@ import logging
 import queue
 import re
 
-from .core import HAFFmpegWorker, HAFFMPEG_QUEUE_END
+from .core import HAFFmpegWorker, HAFFMPEG_QUEUE_END, FFMPEG_STDOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class SensorNoise(HAFFmpegWorker):
         self._peak = peak
 
     def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
-        """Open FFmpeg process as mjpeg video stream."""
+        """Open FFmpeg process for read autio stream."""
         command = [
             "-i",
             input_source,
@@ -97,4 +97,97 @@ class SensorNoise(HAFFmpegWorker):
                     state = self.STATE_NOISE
                 continue
 
-        _LOGGER.warning("Unknown data from queue!")
+            _LOGGER.warning("Unknown data from queue!")
+
+
+class SensorMotion(HAFFmpegWorker):
+    """Implement motion detection with ffmpeg scene detection."""
+
+    STATE_NONE = 0
+    STATE_REPEAT = 1
+    STATE_MOTION = 2
+
+    MATCH = "\d,.*(\d),.*\d,.*\d,.*\d,.*\w"
+
+    def __init__(self, ffmpeg_bin, callback):
+        """Init motion sensor."""
+        super().__init__(ffmpeg_bin)
+
+        self._callback = callback
+        self._changes = 10
+        self._time_duration = 60
+        self._time_repeat = 0
+        self._repeat = 1
+
+    def set_options(self, time_reset=60, time_repeat=0, repeat=1,
+                    changes=10):
+        """Set option parameter for noise sensor."""
+        self._time_reset = time_reset
+        self._time_repeat = time_repeat
+        self._repeat = repeat
+        self._changes = changes
+
+    def open_sensor(self, input_source, extra_cmd=None):
+        """Open FFmpeg process a video stream for motion detection."""
+        command = [
+            "-i",
+            input_source,
+            "-an",
+            "-filter:v",
+            "select=gt(scene\,{0})".format(self._changes / 100),
+            "-hash",
+            "md5",
+            "-f",
+            "framehash",
+        ]
+
+        # run ffmpeg, read output
+        self.start_worker(cmd=command, output="-", extra_cmd=extra_cmd,
+                          pattern=self.MATCH, reading=FFMPEG_STDOUT)
+
+    def _worker_process(self):
+        """This function run in thread for process que data."""
+        state = self.STATE_NONE
+        timeout = None
+
+        # for repeat feature
+        re_frame = 0
+
+        re_data = re.compile(self.MATCH)
+
+        # process queue data
+        while True:
+            try:
+                _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
+                data = self._que.get(block=True, timeout=timeout)
+                if data == HAFFMPEG_QUEUE_END:
+                    return
+            except queue.Empty:
+                _LOGGER.debug("Blocking timeout")
+                # reset motion detection
+                if state == self.STATE_MOTION:
+                    state = self.STATE_NONE
+                    self._callback(False)
+                    timeout = None
+                # reset repeate state
+                if state == self.STATE_REPEAT:
+                    state = self.STATE_NONE
+                    timeout = None
+                continue
+
+            frames = re_data.search(data)
+            if frames
+                # repeat not used
+                if self._repeat <= 1 and state == self.STATE_NONE:
+                    state = self.STATE_MOTION
+                    self._callback(True)
+                    timeout = self._time_reset
+
+                # repeat feature is on
+                if state == self.STATE_NONE:
+                    state = self.STATE_REPEAT
+                    re_frame = frames.group(1)
+
+                continue
+
+            _LOGGER.warning("Unknown data from queue!")
