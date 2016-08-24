@@ -178,7 +178,7 @@ class SensorMotion(HAFFmpegWorker):
                 continue
 
             frames = re_data.search(data)
-            if frames
+            if frames:
                 # repeat not used
                 if self._repeat == 0 and state == self.STATE_NONE:
                     state = self.STATE_MOTION

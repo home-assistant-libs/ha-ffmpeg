@@ -206,7 +206,7 @@ class HAFFmpegWorker(HAFFmpegQue):
 
         self._worker_thread = None
 
-    # pylint disable=too-many-arguments
+    # pylint: disable=too-many-arguments
     def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None,
                      reading=FFMPEG_STDERR):
         """Start ffmpeg process with que and process data."""
