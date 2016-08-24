@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
               help="Time duration to need no motion before reset state")
 @click.option("--repeat-time", "-rt", default=0, type=int,
               help="Need repeat motion in this time period for trigger state")
-@click.option("--repeat", "-rc", default=1, type=int,
+@click.option("--repeat", "-rc", default=0, type=int,
               help="Need repeat motion to trigger state in repeat-time")
 @click.option("--changes", "-c", default=10, type=int,
               help="Scene change settings or percent of image they need change")

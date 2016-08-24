@@ -155,6 +155,7 @@ class HAFFmpegQue(HAFFmpeg):
         while self.is_running:
             try:
                 line = self._reading.readline()
+            # pylint: disable=broad-except
             except Exception:
                 break
 
@@ -205,6 +206,7 @@ class HAFFmpegWorker(HAFFmpegQue):
 
         self._worker_thread = None
 
+    # pylint disable=too-many-arguments
     def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None,
                      reading=FFMPEG_STDERR):
         """Start ffmpeg process with que and process data."""

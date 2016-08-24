@@ -2,6 +2,7 @@
 import logging
 import queue
 import re
+from time import time
 
 from .core import HAFFmpegWorker, HAFFMPEG_QUEUE_END, FFMPEG_STDOUT
 
@@ -117,9 +118,9 @@ class SensorMotion(HAFFmpegWorker):
         self._changes = 10
         self._time_duration = 60
         self._time_repeat = 0
-        self._repeat = 1
+        self._repeat = 0
 
-    def set_options(self, time_reset=60, time_repeat=0, repeat=1,
+    def set_options(self, time_reset=60, time_repeat=0, repeat=0,
                     changes=10):
         """Set option parameter for noise sensor."""
         self._time_reset = time_reset
@@ -152,6 +153,7 @@ class SensorMotion(HAFFmpegWorker):
 
         # for repeat feature
         re_frame = 0
+        re_time = 0
 
         re_data = re.compile(self.MATCH)
 
@@ -178,15 +180,36 @@ class SensorMotion(HAFFmpegWorker):
             frames = re_data.search(data)
             if frames
                 # repeat not used
-                if self._repeat <= 1 and state == self.STATE_NONE:
+                if self._repeat == 0 and state == self.STATE_NONE:
                     state = self.STATE_MOTION
                     self._callback(True)
                     timeout = self._time_reset
 
-                # repeat feature is on
+                # repeat feature is on / first motion
                 if state == self.STATE_NONE:
                     state = self.STATE_REPEAT
-                    re_frame = frames.group(1)
+                    re_frame = int(frames.group(1))
+                    re_time = time()
+
+                elif state == self.STATE_REPEAT:
+                    # other repeat frame
+                    tmp_frame = int(frames.group(1))
+
+                    # REPEAT ready?
+                    if tmp_frame - re_frame >= self._repeat:
+                        state = self.STATE_MOTION
+                        self._callback(True)
+                        timeout = self._time_reset
+                    else:
+                        past = time() - re_time
+                        timeout -= past
+
+                    # REPEAT time down
+                    if timeout <= 0:
+                        _LOGGER.debug("Reset repeat to none")
+                        state = self.STATE_NONE
+                        timeout = None
+
 
                 continue
 
