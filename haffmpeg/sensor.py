@@ -186,7 +186,7 @@ class SensorMotion(HAFFmpegWorker):
                 # repeat feature is on / first motion
                 if state == self.STATE_NONE:
                     state = self.STATE_REPEAT
-                    timout = self._time_repeat
+                    timeout = self._time_repeat
                     re_frame = 0
                     re_time = time()
 
