@@ -108,7 +108,7 @@ class SensorMotion(HAFFmpegWorker):
     STATE_REPEAT = 1
     STATE_MOTION = 2
 
-    MATCH = r"\d,.*(\d),.*\d,.*\d,.*\d,.*\w"
+    MATCH = r"\d,.*\d,.*\d,.*\d,.*\d,.*\w"
 
     def __init__(self, ffmpeg_bin, callback):
         """Init motion sensor."""
@@ -186,15 +186,14 @@ class SensorMotion(HAFFmpegWorker):
                 # repeat feature is on / first motion
                 if state == self.STATE_NONE:
                     state = self.STATE_REPEAT
-                    re_frame = int(frames.group(1))
+                    re_frame = 0
                     re_time = time()
 
                 elif state == self.STATE_REPEAT:
-                    # other repeat frame
-                    tmp_frame = int(frames.group(1))
+                    re_frame += 1
 
                     # REPEAT ready?
-                    if tmp_frame - re_frame >= self._repeat:
+                    if re_frame >= self._repeat:
                         state = self.STATE_MOTION
                         self._callback(True)
                         timeout = self._time_reset
