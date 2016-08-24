@@ -108,7 +108,7 @@ class SensorMotion(HAFFmpegWorker):
     STATE_REPEAT = 1
     STATE_MOTION = 2
 
-    MATCH = "\d,.*(\d),.*\d,.*\d,.*\d,.*\w"
+    MATCH = r"\d,.*(\d),.*\d,.*\d,.*\d,.*\w"
 
     def __init__(self, ffmpeg_bin, callback):
         """Init motion sensor."""
