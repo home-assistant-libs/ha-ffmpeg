@@ -168,6 +168,7 @@ class HAFFmpegQue(HAFFmpeg):
                     _LOGGER.warning("Queue is full...")
 
         # send end to reader of queue
+        _LOGGER.debug("Close read ffmpeg output to que.")
         self._que.put(HAFFMPEG_QUEUE_END)
 
     def start_reading_que(self, pattern=None, reading=FFMPEG_STDERR):
