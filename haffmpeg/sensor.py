@@ -136,10 +136,8 @@ class SensorMotion(HAFFmpegWorker):
             "-an",
             "-filter:v",
             "select=gt(scene\\,{0})".format(self._changes / 100),
-            "-hash",
-            "md5",
             "-f",
-            "framehash",
+            "framemd5",
         ]
 
         # run ffmpeg, read output
