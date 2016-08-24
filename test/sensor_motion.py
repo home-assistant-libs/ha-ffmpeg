@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
               help="Need repeat motion in this time period for trigger state")
 @click.option("--repeat", "-rc", default=0, type=int,
               help="Need repeat motion to trigger state in repeat-time")
-@click.option("--changes", "-c", default=10, type=int,
+@click.option("--changes", "-c", default=10, type=float,
               help="Scene change settings or percent of image they need change")
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
 @click.option("--wait", "-w", default=30, type=int,
