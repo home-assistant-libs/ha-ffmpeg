@@ -45,7 +45,7 @@ class HAFFmpeg(object):
         if len(input_cmd) > 1:
             self._argv.extend(input_cmd)
         else:
-            self._argv.append(input_source)
+            self._argv.extend(['-i', input_source])
 
         # add cmds
         self._argv.extend(cmd)
