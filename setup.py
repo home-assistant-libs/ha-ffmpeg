@@ -3,7 +3,7 @@ from setuptools import setup
 with open('README.rst') as f:
     long_description = f.read()
 
-VERSION = "0.8"
+VERSION = "0.9"
 
 setup(
     name='ha-ffmpeg',

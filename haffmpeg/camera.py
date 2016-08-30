@@ -12,13 +12,10 @@ class CameraMjpeg(HAFFmpeg):
     def open_camera(self, input_source, extra_cmd=None):
         """Open FFmpeg process as mjpeg video stream."""
         command = [
-            "-i",
-            input_source,
             "-an",
             "-c:v",
             "mjpeg",
-            "-f",
-            "mpjpeg"
         ]
 
-        self.open(cmd=command, extra_cmd=extra_cmd)
+        self.open(cmd=command, input_source=input_source, output="-f mpjpeg -",
+                  extra_cmd=extra_cmd)

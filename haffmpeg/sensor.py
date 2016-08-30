@@ -35,15 +35,14 @@ class SensorNoise(HAFFmpegWorker):
     def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
         """Open FFmpeg process for read autio stream."""
         command = [
-            "-i",
-            input_source,
             "-vn",
             "-filter:a",
             "silencedetect=n={}dB:d=1".format(self._peak)
         ]
 
         # run ffmpeg, read output
-        self.start_worker(cmd=command, output=output_dest, extra_cmd=extra_cmd,
+        self.start_worker(cmd=command, input_source=input_source,
+                          output=output_dest, extra_cmd=extra_cmd,
                           pattern="silence")
 
     def _worker_process(self):
@@ -131,17 +130,14 @@ class SensorMotion(HAFFmpegWorker):
     def open_sensor(self, input_source, extra_cmd=None):
         """Open FFmpeg process a video stream for motion detection."""
         command = [
-            "-i",
-            input_source,
             "-an",
             "-filter:v",
             "select=gt(scene\\,{0})".format(self._changes / 100),
-            "-f",
-            "framemd5",
         ]
 
         # run ffmpeg, read output
-        self.start_worker(cmd=command, output="-", extra_cmd=extra_cmd,
+        self.start_worker(cmd=command, input_source=input_source,
+                          output="-f framemd5 -", extra_cmd=extra_cmd,
                           pattern=self.MATCH, reading=FFMPEG_STDOUT)
 
     def _worker_process(self):
