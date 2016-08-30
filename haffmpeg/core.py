@@ -41,11 +41,7 @@ class HAFFmpeg(object):
             return
 
         # set input
-        input_cmd = shlex.split(input_source)
-        if len(input_cmd) > 1:
-            self._argv.extend(input_cmd)
-        else:
-            self._argv.extend(['-i', input_source])
+        self.__put_input(input_source)
 
         # add cmds
         self._argv.extend(cmd)
@@ -71,14 +67,7 @@ class HAFFmpeg(object):
                 self._argv = new_argv.copy()
 
         # add output
-        if output is None:
-            self._argv.extend(['-f', 'null', '-'])
-        else:
-            output_cmd = shlex.split(output)
-            if len(output_cmd) > 1:
-                self._argv.extend(output_cmd)
-            else:
-                self._argv.append(output)
+        self.__put_output(output)
 
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
@@ -127,6 +116,26 @@ class HAFFmpeg(object):
         if self._proc is None or self._proc.poll() is not None:
             return False
         return True
+
+    def __put_input(self, input_source):
+        """Put input string to ffmpeg command."""
+        input_cmd = shlex.split(input_source)
+        if len(input_cmd) > 1:
+            self._argv.extend(input_cmd)
+        else:
+            self._argv.extend(['-i', input_source])
+
+    def __put_output(self, output):
+        """Put output string to ffmpeg command."""
+        if output is None:
+            self._argv.extend(['-f', 'null', '-'])
+            return
+
+        output_cmd = shlex.split(output)
+        if len(output_cmd) > 1:
+            self._argv.extend(output_cmd)
+        else:
+            self._argv.append(output)
 
     def __iter__(self):
         """Read data from ffmpeg PIPE/STDERR as iter."""
