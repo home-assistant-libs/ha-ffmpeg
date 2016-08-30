@@ -30,7 +30,7 @@ class HAFFmpeg(object):
         self._proc = None
 
     # pylint: disable=too-many-arguments
-    def open(self, cmd, output="-", extra_cmd=None, text=False,
+    def open(self, cmd, input_source, output="-", extra_cmd=None, text=False,
              stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
         stdout = subprocess.PIPE if stdout_pipe else subprocess.DEVNULL
@@ -39,6 +39,13 @@ class HAFFmpeg(object):
         if self.is_running:
             _LOGGER.critical("FFmpeg is allready running!")
             return
+
+        # set input
+        input_cmd = shlex.split(input_source)
+        if len(input_cmd) > 1:
+            self._argv.extend(input_cmd)
+        else:
+            self._argv.append(input_source)
 
         # add cmds
         self._argv.extend(cmd)
@@ -67,7 +74,11 @@ class HAFFmpeg(object):
         if output is None:
             self._argv.extend(['-f', 'null', '-'])
         else:
-            self._argv.append(output)
+            output_cmd = shlex.split(output)
+            if len(output_cmd) > 1:
+                self._argv.extend(output_cmd)
+            else:
+                self._argv.append(output)
 
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
@@ -208,8 +219,8 @@ class HAFFmpegWorker(HAFFmpegQue):
         self._worker_thread = None
 
     # pylint: disable=too-many-arguments
-    def start_worker(self, cmd, output=None, extra_cmd=None, pattern=None,
-                     reading=FFMPEG_STDERR):
+    def start_worker(self, cmd, input_source, output=None, extra_cmd=None,
+                     pattern=None, reading=FFMPEG_STDERR):
         """Start ffmpeg process with que and process data."""
         if self._worker_thread is not None and self._worker_thread.is_alive():
             _LOGGER.warning("Can't start worker. It is allready running!")
@@ -224,8 +235,9 @@ class HAFFmpegWorker(HAFFmpegQue):
             pip_err = False
 
         # start ffmpeg and reading to queue
-        self.open(cmd=cmd, output=output, extra_cmd=extra_cmd,
-                  stdout_pipe=pip_std, stderr_pipe=pip_err, text=True)
+        self.open(cmd=cmd, input_source=input_source, output=output,
+                  extra_cmd=extra_cmd, stdout_pipe=pip_std,
+                  stderr_pipe=pip_err, text=True)
         if not self.start_reading_que(pattern=pattern, reading=reading):
             _LOGGER.warning("Can't start worker if queue is not running!")
             return
