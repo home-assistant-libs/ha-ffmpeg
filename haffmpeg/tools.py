@@ -23,7 +23,7 @@ class ImageSingle(HAFFmpeg):
         """Open FFmpeg process as capture 1 frame."""
         command = [
             "-an",
-            "-frame:v",
+            "-frames:v",
             "1",
             "-c:v",
             output_format,
