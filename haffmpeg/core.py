@@ -152,7 +152,11 @@ class HAFFmpeg(object):
             _LOGGER.critical("Iterator havn't data to  read from!")
             raise StopIteration
 
-        return self._proc.stdout.read(self._chunk_size)
+        try:
+            return self._proc.stdout.read(self._chunk_size)
+        # pylint: disable=broad-except
+        except Exception:
+            raise StopIteration
 
 
 class HAFFmpegQue(HAFFmpeg):
