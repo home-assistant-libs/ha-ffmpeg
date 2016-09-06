@@ -1,4 +1,4 @@
-"""For HA camera components."""
+"""For HA sensor components."""
 import logging
 import queue
 import re
