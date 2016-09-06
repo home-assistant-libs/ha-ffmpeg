@@ -1,5 +1,6 @@
 """For HA sensor components."""
 import logging
+import queue
 import re
 from time import time
 

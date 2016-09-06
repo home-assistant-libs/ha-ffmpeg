@@ -35,6 +35,7 @@ class ImageSingle(HAFFmpeg):
 
         # read image
         try:
+            # pylint: disable=unused-variable
             image, error = self._proc.communicate(timeout=timeout)
             return image
         except subprocess.TimeoutExpired:
