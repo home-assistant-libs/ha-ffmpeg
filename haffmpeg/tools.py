@@ -130,6 +130,9 @@ class ImageStream(HAFFmpeg):
                 # reset
                 buff = buff[magic_frame:]
 
+        # end
+        self._que.put(self.CLOSE_IMAGE_STREAM)
+
     def _image_callback_handler(self):
         """Read queue and send it as callback to HA."""
         while True:
