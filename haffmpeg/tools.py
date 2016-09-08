@@ -3,6 +3,7 @@ import logging
 import queue
 import subprocess
 import threading
+from time import time
 
 from .core import HAFFmpeg
 
@@ -10,6 +11,11 @@ _LOGGER = logging.getLogger(__name__)
 
 IMAGE_JPEG = 'mjpeg'
 IMAGE_PNG = 'png'
+
+IMAGE_MAGIC = {
+    IMAGE_JPEG: b'\xFF\xD8\xFF',
+    IMAGE_PNG: b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A',
+}
 
 
 class ImageSingle(HAFFmpeg):
@@ -85,9 +91,11 @@ class ImageStream(HAFFmpeg):
             kwargs={'interval': interval}
         )
         self._push_thread = threading.Thread(
+            output_format=output_format,
             target=self._image_callback_handler
         )
 
+        # start processing
         self._que_thread.start()
         self._push_thread.start()
 
@@ -95,8 +103,30 @@ class ImageStream(HAFFmpeg):
         """Push a image out of interval to queu."""
         self._push_event.set()
 
-    def _read_stream(self, interval):
+    def _read_stream(self, output_format, interval):
         """Read a stream and extract image data."""
+        buff = b''
+        next_put = time() + interval
+
+        # read stream
+        for chunk in self:
+            buff += chunk
+            magic_frame = buff.rfind(IMAGE_MAGIC.get(output_format))
+
+            # new frame?
+            if magic_frame > 0:
+                # time for new image
+                if next_put <= time() or self._push_event.is_set():
+                    # push new image to queue
+                    new_image = buff[:magic_frame-1]
+                    try:
+                        self._push_event.clear()
+                        self._que.put(new_image, block=False)
+                        _LOGGER.debug("Put image to queue")
+                    except queue.Full:
+                        _LOGGER.critical("Image queue is full!")
+                # reset
+                buff = buff[magic_frame:]
 
     def _image_callback_handler(self):
         """Read queue and send it as callback to HA."""
@@ -105,5 +135,5 @@ class ImageStream(HAFFmpeg):
             if data == self.CLOSE_IMAGE_STREAM:
                 return
 
-            _LOGGER.debug("Push image to HA.")
+            _LOGGER.debug("Push image to HA")
             self._callback(data)
