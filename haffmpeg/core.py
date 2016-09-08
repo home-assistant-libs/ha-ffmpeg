@@ -197,7 +197,7 @@ class HAFFmpegQue(HAFFmpeg):
 
     def start_reading_que(self, pattern=None, reading=FFMPEG_STDERR):
         """Read line from STDERR to Que they match with pattern."""
-        if self._que_thread is not None:
+        if self._que_thread is not None and self._que_thread.is_alive():
             _LOGGER.critical("Thread is allready running now!")
             return False
         elif self._bin_mode:
