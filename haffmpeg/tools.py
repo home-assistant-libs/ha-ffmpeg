@@ -88,11 +88,13 @@ class ImageStream(HAFFmpeg):
         # init threading
         self._que_thread = threading.Thread(
             target=self._read_stream,
-            kwargs={'interval': interval}
+            kwargs={
+                'interval': interval,
+                'output_format': output_format,
+            },
         )
         self._push_thread = threading.Thread(
-            output_format=output_format,
-            target=self._image_callback_handler
+            target=self._image_callback_handler,
         )
 
         # start processing
