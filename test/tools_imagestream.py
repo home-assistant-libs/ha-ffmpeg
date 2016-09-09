@@ -28,7 +28,7 @@ def cli(ffmpeg, source, format_img, prafix, output, extra, interval):
     _callback.count = 0
 
     stream = ImageStream(ffmpeg_bin=ffmpeg, callback=_callback)
-    image = stream.open_stream(
+    stream.open_stream(
         input_source=source,
         output_format=format_img,
         extra_cmd=extra,

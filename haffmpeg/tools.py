@@ -18,6 +18,42 @@ IMAGE_MAGIC = {
 }
 
 
+class Test(HAFFmpeg):
+    """Test a ffmpeg/mulimedia file/stream."""
+
+    def __init__(self, ffmpeg_bin):
+        """Init Test."""
+        HAFFmpeg.__init__(self, ffmpeg_bin=ffmpeg_bin)
+
+    def run_test(self, input_source, timeout=15):
+        """Start a test and give a TRUE or FALSE."""
+        command = [
+            "-frames:v",
+            "1",
+            "-frames:a",
+            "1",
+        ]
+
+        # Run a short test with input
+        self.open(cmd=command, input_source=input_source, stderr_pipe=True,
+                  output=None)
+
+        try:
+            out, error = self._proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _LOGGER.warning("Timeout reading test.")
+            self.close()
+            return None
+
+        # check error code
+        if self._proc.returncode == 0:
+            _LOGGER.debug("STD: %s / ERR: %s", out, error)
+            return True
+        _LOGGER.critical("ReturnCode: %i / STD: %s / ERR: %s",
+                         self._proc.returncode, out, error)
+        return False
+
+
 class ImageSingle(HAFFmpeg):
     """Implement a single image caputre from a stream."""
 
