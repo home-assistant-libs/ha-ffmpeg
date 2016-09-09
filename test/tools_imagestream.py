@@ -19,14 +19,13 @@ logging.basicConfig(level=logging.DEBUG)
 @click.option("--interval", "-i", default=10, help="Extra ffmpeg command line arguments")
 def cli(ffmpeg, source, format_img, prafix, output, extra, interval):
     """FFMPEG capture frame as image."""
-    count = 0
 
     def _callback(image):
-        global count
-        count += 1
-        name = os.path.join(output, "image{0}.{1}".format(count, prafix))
+        _callback.count += 1
+        name = os.path.join(output, "image{0}.{1}".format(_callback.count, prafix))
         with open(name, "wb") as fh_img:
             fh_img.write(image)
+    _callback.count = 0
 
     stream = ImageStream(ffmpeg_bin=ffmpeg, callback=_callback)
     image = stream.open_stream(
