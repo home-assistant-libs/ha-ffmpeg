@@ -29,7 +29,7 @@ class HAFFmpeg(object):
         self._bin_mode = None
         self._proc = None
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,too-many-locals
     def open(self, cmd, input_source, output="-", extra_cmd=None, text=False,
              stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
@@ -70,14 +70,20 @@ class HAFFmpeg(object):
         self.__put_output(output)
 
         # start ffmpeg
-        _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
-        self._proc = subprocess.Popen(
-            self._argv,
-            stderr=stderr,
-            stdout=stdout,
-            stdin=subprocess.PIPE,
-            universal_newlines=text
-        )
+        _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
+        try:
+            self._proc = subprocess.Popen(
+                self._argv,
+                stderr=stderr,
+                stdout=stdout,
+                stdin=subprocess.PIPE,
+                universal_newlines=text
+            )
+        # pylint: disable=broad-except
+        except Exception as err:
+            _LOGGER.exception("FFmpeg fails %s", err)
+            self._clear()
+            return
 
         # save bin/text mode of process
         self._bin_mode = False if text else True
@@ -94,13 +100,16 @@ class HAFFmpeg(object):
         try:
             # send stop to ffmpeg
             self._proc.communicate(input=stop, timeout=timeout)
-            _LOGGER.debug("Close FFmpeg process.")
+            _LOGGER.debug("Close FFmpeg process")
         except subprocess.TimeoutExpired:
-            _LOGGER.warning("Timeout while waiting of FFmpeg.")
+            _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
             self._proc.wait()
 
         # clean ffmpeg cmd
+        self._clear()
+
+    def _clear(self):
         self._argv = [self._ffmpeg]
         self._proc = None
         self._bin_mode = None
@@ -197,7 +206,7 @@ class HAFFmpegQue(HAFFmpeg):
 
     def start_reading_que(self, pattern=None, reading=FFMPEG_STDERR):
         """Read line from STDERR to Que they match with pattern."""
-        if self._que_thread is not None:
+        if self._que_thread is not None and self._que_thread.is_alive():
             _LOGGER.critical("Thread is allready running now!")
             return False
         elif self._bin_mode:
