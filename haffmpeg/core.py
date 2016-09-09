@@ -70,14 +70,20 @@ class HAFFmpeg(object):
         self.__put_output(output)
 
         # start ffmpeg
-        _LOGGER.debug("Start FFmpeg with %s.", str(self._argv))
-        self._proc = subprocess.Popen(
-            self._argv,
-            stderr=stderr,
-            stdout=stdout,
-            stdin=subprocess.PIPE,
-            universal_newlines=text
-        )
+        _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
+        try:
+            self._proc = subprocess.Popen(
+                self._argv,
+                stderr=stderr,
+                stdout=stdout,
+                stdin=subprocess.PIPE,
+                universal_newlines=text
+            )
+        # pylint: disable=broad-except
+        except Exception as err:
+            _LOGGER.exception("FFmpeg fails %s", err)
+            self._clear()
+            return
 
         # save bin/text mode of process
         self._bin_mode = False if text else True
@@ -94,13 +100,16 @@ class HAFFmpeg(object):
         try:
             # send stop to ffmpeg
             self._proc.communicate(input=stop, timeout=timeout)
-            _LOGGER.debug("Close FFmpeg process.")
+            _LOGGER.debug("Close FFmpeg process")
         except subprocess.TimeoutExpired:
-            _LOGGER.warning("Timeout while waiting of FFmpeg.")
+            _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
             self._proc.wait()
 
         # clean ffmpeg cmd
+        self._clear()
+
+    def _clear(self):
         self._argv = [self._ffmpeg]
         self._proc = None
         self._bin_mode = None
