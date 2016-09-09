@@ -38,8 +38,8 @@ class ImageSingle(HAFFmpeg):
         ]
 
         # open input for capture 1 frame
-        self.open(cmd=command, input_source=input_source, output="-f image2 -",
-                  extra_cmd=extra_cmd)
+        self.open(cmd=command, input_source=input_source,
+                  output="-f image2pipe -", extra_cmd=extra_cmd)
 
         # read image
         try:
@@ -82,8 +82,8 @@ class ImageStream(HAFFmpeg):
         ]
 
         # open input for image stream
-        self.open(cmd=command, input_source=input_source, output="-f image2 -",
-                  extra_cmd=extra_cmd)
+        self.open(cmd=command, input_source=input_source,
+                  output="-f image2pipe -", extra_cmd=extra_cmd)
 
         # init threading
         self._que_thread = threading.Thread(
