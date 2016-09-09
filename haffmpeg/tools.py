@@ -108,7 +108,7 @@ class ImageStream(HAFFmpeg):
     def _read_stream(self, output_format, interval):
         """Read a stream and extract image data."""
         buff = b''
-        next_put = time() + interval
+        next_put = time()
 
         # read stream
         for chunk in self:
@@ -123,6 +123,7 @@ class ImageStream(HAFFmpeg):
                     new_image = buff[:magic_frame-1]
                     try:
                         self._push_event.clear()
+                        next_put = time() + interval
                         self._que.put(new_image, block=False)
                         _LOGGER.debug("Put image to queue")
                     except queue.Full:
