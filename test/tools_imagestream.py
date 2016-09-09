@@ -22,6 +22,7 @@ def cli(ffmpeg, source, format_img, prafix, output, extra, interval):
     count = 0
 
     def _callback(image):
+        global count
         count += 1
         name = os.path.join(output, "image{0}.{1}".format(count, prafix))
         with open(name, "wb") as fh_img:
