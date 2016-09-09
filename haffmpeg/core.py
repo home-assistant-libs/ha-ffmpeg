@@ -29,7 +29,7 @@ class HAFFmpeg(object):
         self._bin_mode = None
         self._proc = None
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,too-many-locals
     def open(self, cmd, input_source, output="-", extra_cmd=None, text=False,
              stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
