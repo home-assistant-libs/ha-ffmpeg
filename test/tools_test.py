@@ -14,7 +14,7 @@ def cli(ffmpeg, source):
     """FFMPEG capture frame as image."""
 
     stream = Test(ffmpeg_bin=ffmpeg)
-    stream.get_image(
+    stream.run_test(
         input_source=source,
     )
 
