@@ -38,6 +38,10 @@ class Test(HAFFmpeg):
         self.open(cmd=command, input_source=input_source, stderr_pipe=True,
                   output=None)
 
+        # error after open?
+        if self._proc is None:
+            return False
+
         try:
             out, error = self._proc.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
