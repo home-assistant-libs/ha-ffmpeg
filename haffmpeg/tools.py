@@ -44,7 +44,7 @@ class Test(HAFFmpeg):
 
         try:
             out, error = self._proc.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, ValueError):
             _LOGGER.warning("Timeout reading test.")
             self.close()
             return None
@@ -86,7 +86,7 @@ class ImageSingle(HAFFmpeg):
             # pylint: disable=unused-variable
             image, error = self._proc.communicate(timeout=timeout)
             return image
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, ValueError):
             _LOGGER.warning("Timeout reading image.")
             self.close()
             return None
