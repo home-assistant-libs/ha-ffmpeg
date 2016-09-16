@@ -101,7 +101,7 @@ class HAFFmpeg(object):
             # send stop to ffmpeg
             self._proc.communicate(input=stop, timeout=timeout)
             _LOGGER.debug("Close FFmpeg process")
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
             self._proc.wait()
