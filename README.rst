@@ -6,6 +6,9 @@ A python library that handling with ffmpeg for home-assistant
 - Analyse a video/audio stream for noise or motion detection
 - Crap image from a stream
 
+Async
+- Webcam
+
 Example
 -------
 .. code:: python
