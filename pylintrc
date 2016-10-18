@@ -9,3 +9,4 @@ disable=
   abstract-class-not-used,
   unused-argument,
   global-statement,
+  arguments-differ,
