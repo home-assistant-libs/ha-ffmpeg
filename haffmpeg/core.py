@@ -256,8 +256,7 @@ class HAFFmpegAsync(HAFFmpegBasic):
         try:
             # send stop to ffmpeg
             with timeout(timeout, loop=self._loop):
-                yield from self._proc.communicate(input=b'q'),
-            )
+                yield from self._proc.communicate(input=b'q')
             _LOGGER.debug("Close FFmpeg process")
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
