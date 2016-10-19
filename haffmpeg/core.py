@@ -1,5 +1,6 @@
 """Base functionality of ffmpeg HA wrapper."""
 import asyncio
+from async_timeout import timeout
 import logging
 import queue
 import re
@@ -254,10 +255,8 @@ class HAFFmpegAsync(HAFFmpegBasic):
 
         try:
             # send stop to ffmpeg
-            yield from asyncio.wait_for(
-                self._proc.communicate(input=b'q'),
-                timeout=timeout,
-                loop=self._loop,
+            with timeout(timeout, loop=self._loop):
+                yield from self._proc.communicate(input=b'q'),
             )
             _LOGGER.debug("Close FFmpeg process")
         except (asyncio.TimeoutError, ValueError):

@@ -1,5 +1,6 @@
 """For HA varios tools."""
 import asyncio
+from async_timeout import timeout
 import logging
 import queue
 import subprocess
@@ -116,8 +117,8 @@ class TestAsync(HAFFmpegAsync):
             return False
 
         try:
-            out, error = yield from asyncio.wait_for(
-                self._proc.communicate(), loop=self._loop, timeout=timeout)
+            with timeout(timeout, loop=self._loop):
+                out, error = yield from self._proc.communicate()
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout reading test.")
             self.close()
@@ -156,8 +157,8 @@ class ImageSingleAsync(HAFFmpegAsync):
         # read image
         try:
             # pylint: disable=unused-variable
-            image, error = yield from asyncio.wait_for(
-                self._proc.communicate(), loop=self._loop, timeout=timeout)
+            with timeout(timeout, loop=self._loop):
+                image, error = yield from self._proc.communicate()
             return image
         except (subprocess.TimeoutExpired, ValueError):
             _LOGGER.warning("Timeout reading image.")
