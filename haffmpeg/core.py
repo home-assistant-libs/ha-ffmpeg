@@ -1,12 +1,13 @@
 """Base functionality of ffmpeg HA wrapper."""
 import asyncio
-import async_timeout
 import logging
 import queue
 import re
 import shlex
 import subprocess
 import threading
+
+import async_timeout
 
 _LOGGER = logging.getLogger(__name__)
 

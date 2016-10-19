@@ -1,11 +1,12 @@
 """For HA varios tools."""
 import asyncio
-import async_timeout
 import logging
 import queue
 import subprocess
 import threading
 from time import time
+
+import async_timeout
 
 from .core import HAFFmpeg, HAFFmpegAsync
 
