@@ -10,3 +10,5 @@ disable=
   unused-argument,
   global-statement,
   arguments-differ,
+  too-many-arguments,
+  too-many-locals

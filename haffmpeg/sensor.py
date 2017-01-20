@@ -1,10 +1,12 @@
 """For HA sensor components."""
+import asyncio
 import logging
-import queue
 import re
 from time import time
 
-from .core import HAFFmpegWorker, HAFFMPEG_QUEUE_END, FFMPEG_STDOUT
+import async_timeout
+
+from .core import HAFFmpegWorker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,9 +19,9 @@ class SensorNoise(HAFFmpegWorker):
     STATE_END = 2
     STATE_DETECT = 3
 
-    def __init__(self, ffmpeg_bin, callback):
+    def __init__(self, ffmpeg_bin, loop, callback):
         """Init noise sensor."""
-        super().__init__(ffmpeg_bin)
+        super().__init__(ffmpeg_bin, loop)
 
         self._callback = callback
         self._peak = -30
@@ -32,6 +34,7 @@ class SensorNoise(HAFFmpegWorker):
         self._time_reset = time_reset
         self._peak = peak
 
+    @asyncio.coroutine
     def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
         """Open FFmpeg process for read autio stream."""
         command = [
@@ -41,12 +44,13 @@ class SensorNoise(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        self.start_worker(cmd=command, input_source=input_source,
-                          output=output_dest, extra_cmd=extra_cmd,
-                          pattern="silence")
+        yield from self.start_worker(
+            cmd=command, input_source=input_source, output=output_dest,
+            extra_cmd=extra_cmd, pattern="silence")
 
-    def _worker_process(self):
-        """This function run in thread for process que data."""
+    @asyncio.coroutine
+    def _worker_process(self, line):
+        """This function processing data."""
         state = self.STATE_DETECT
         timeout = self._time_duration
 
@@ -57,21 +61,22 @@ class SensorNoise(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                data = self._que.get(block=True, timeout=timeout)
+                with async_timeout.timeout(timeout, loop=self._loop):
+                    data = yield from self._que.get()
                 timeout = None
-                if data == HAFFMPEG_QUEUE_END:
+                if data is None:
                     return
-            except queue.Empty:
+            except asyncio.TimeoutError:
                 _LOGGER.debug("Blocking timeout")
                 # noise
                 if state == self.STATE_DETECT:
                     # noise detected
-                    self._callback(True)
+                    self._loop.call_soon(self._callback, True)
                     state = self.STATE_NOISE
 
                 elif state == self.STATE_END:
                     # no noise
-                    self._callback(False)
+                    self._loop.call_soon(self._callback, False)
                     state = self.STATE_NONE
 
                 timeout = None
@@ -109,9 +114,9 @@ class SensorMotion(HAFFmpegWorker):
 
     MATCH = r"\d,.*\d,.*\d,.*\d,.*\d,.*\w"
 
-    def __init__(self, ffmpeg_bin, callback):
+    def __init__(self, ffmpeg_bin, loop, callback):
         """Init motion sensor."""
-        super().__init__(ffmpeg_bin)
+        super().__init__(ffmpeg_bin, loop)
 
         self._callback = callback
         self._changes = 10
@@ -127,6 +132,7 @@ class SensorMotion(HAFFmpegWorker):
         self._repeat = repeat
         self._changes = changes
 
+    @asyncio.coroutine
     def open_sensor(self, input_source, extra_cmd=None):
         """Open FFmpeg process a video stream for motion detection."""
         command = [
@@ -136,12 +142,13 @@ class SensorMotion(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        self.start_worker(cmd=command, input_source=input_source,
-                          output="-f framemd5 -", extra_cmd=extra_cmd,
-                          pattern=self.MATCH, reading=FFMPEG_STDOUT)
+        yield from self.start_worker(
+            cmd=command, input_source=input_source, output="-f framemd5 -",
+            extra_cmd=extra_cmd, pattern=self.MATCH, reading=FFMPEG_STDOUT)
 
+    @asyncio.coroutine
     def _worker_process(self):
-        """This function run in thread for process que data."""
+        """This function processing data."""
         state = self.STATE_NONE
         timeout = None
 
@@ -155,15 +162,16 @@ class SensorMotion(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                data = self._que.get(block=True, timeout=timeout)
-                if data == HAFFMPEG_QUEUE_END:
+                with async_timeout.timeout(timeout, loop=self._loop):
+                    data = yield from self._que.get()
+                if data is None:
                     return
-            except queue.Empty:
+            except asyncio.TimoutError:
                 _LOGGER.debug("Blocking timeout")
                 # reset motion detection
                 if state == self.STATE_MOTION:
                     state = self.STATE_NONE
-                    self._callback(False)
+                    self._loop.call_soon(self._callback, False)
                     timeout = None
                 # reset repeate state
                 if state == self.STATE_REPEAT:
@@ -176,7 +184,7 @@ class SensorMotion(HAFFmpegWorker):
                 # repeat not used
                 if self._repeat == 0 and state == self.STATE_NONE:
                     state = self.STATE_MOTION
-                    self._callback(True)
+                    self._loop.call_soon(self._callback, True)
                     timeout = self._time_reset
 
                 # repeat feature is on / first motion
@@ -192,7 +200,7 @@ class SensorMotion(HAFFmpegWorker):
                     # REPEAT ready?
                     if re_frame >= self._repeat:
                         state = self.STATE_MOTION
-                        self._callback(True)
+                        self._loop.call_soon(self._callback, True)
                         timeout = self._time_reset
                     else:
                         past = time() - re_time
