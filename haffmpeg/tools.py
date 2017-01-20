@@ -1,8 +1,6 @@
 """For HA varios tools."""
 import asyncio
 import logging
-import threading
-from time import time
 
 import async_timeout
 

@@ -11,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 FFMPEG_STDOUT = 'stdout'
 FFMPEG_STDERR = 'stderr'
 
+
 class HAFFmpeg(object):
     """HA FFmpeg process async.
 
@@ -201,7 +202,7 @@ class HAFFmpegWorker(HAFFmpeg):
             stdout = False
             stderr = True
             self._input = self._proc.stderr
-        else
+        else:
             stdout = True
             stderr = False
             self._input = self._proc.stdout
