@@ -1,8 +1,6 @@
 """For HA varios tools."""
 import asyncio
 import logging
-import queue
-import subprocess
 import threading
 from time import time
 

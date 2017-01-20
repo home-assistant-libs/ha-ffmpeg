@@ -6,7 +6,7 @@ from time import time
 
 import async_timeout
 
-from .core import HAFFmpegWorker
+from .core import HAFFmpegWorker, FFMPEG_STDOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ class SensorMotion(HAFFmpegWorker):
                     data = yield from self._que.get()
                 if data is None:
                     return
-            except asyncio.TimoutError:
+            except asyncio.TimeoutError:
                 _LOGGER.debug("Blocking timeout")
                 # reset motion detection
                 if state == self.STATE_MOTION:

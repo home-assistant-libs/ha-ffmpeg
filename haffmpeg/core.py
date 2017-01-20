@@ -8,6 +8,8 @@ import async_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
+FFMPEG_STDOUT = 'stdout'
+FFMPEG_STDERR = 'stderr'
 
 class HAFFmpeg(object):
     """HA FFmpeg process async.
@@ -155,6 +157,7 @@ class HAFFmpegWorker(HAFFmpeg):
         super().__init__(ffmpeg_bin, loop)
 
         self._que = asyncio.Queue(loop=loop)
+        self._input = None
 
     @asyncio.coroutine
     def _process_lines(self, pattern=None):
@@ -167,7 +170,7 @@ class HAFFmpegWorker(HAFFmpeg):
         # read lines
         while self.is_running:
             try:
-                line = yield from self._proc.stderr.readline()
+                line = yield from self._input.readline()
                 line = line.decode()
             # pylint: disable=broad-except
             except Exception:
@@ -188,16 +191,28 @@ class HAFFmpegWorker(HAFFmpeg):
 
     @asyncio.coroutine
     def start_worker(self, cmd, input_source, output=None, extra_cmd=None,
-                     pattern=None):
+                     pattern=None, reading=FFMPEG_STDERR):
         """Start ffmpeg do process data from output."""
         if self.is_running:
             _LOGGER.warning("Can't start worker. It is allready running!")
             return
 
+        if reading == FFMPEG_STDERR:
+            stdout = False
+            stderr = True
+            self._input = self._proc.stderr
+        else
+            stdout = True
+            stderr = False
+            self._input = self._proc.stdout
+
         # start ffmpeg and reading to queue
         yield from self.open(
             cmd=cmd, input_source=input_source, output=output,
-            extra_cmd=extra_cmd, stdout_pipe=False, stderr_pipe=True)
+            extra_cmd=extra_cmd, stdout_pipe=stdout, stderr_pipe=stderr)
+
+        self._input = self._proc.stderr if reading == FFMPEG_STDERR \
+            else self._proc.stdout
 
         # start background processing
         self._loop.create_task(self._process_lines(pattern))
