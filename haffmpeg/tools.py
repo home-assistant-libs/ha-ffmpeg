@@ -51,8 +51,8 @@ class Test(HAFFmpeg):
         if self._proc.returncode == 0:
             _LOGGER.debug("STD: %s / ERR: %s", out, error)
             return True
-        _LOGGER.critical("ReturnCode: %i / STD: %s / ERR: %s",
-                         self._proc.returncode, out, error)
+        _LOGGER.error("ReturnCode: %i / STD: %s / ERR: %s",
+                      self._proc.returncode, out, error)
         return False
 
 

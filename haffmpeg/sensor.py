@@ -49,7 +49,7 @@ class SensorNoise(HAFFmpegWorker):
             extra_cmd=extra_cmd, pattern="silence")
 
     @asyncio.coroutine
-    def _worker_process(self, line):
+    def _worker_process(self):
         """This function processing data."""
         state = self.STATE_DETECT
         timeout = self._time_duration

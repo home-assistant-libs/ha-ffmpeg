@@ -97,7 +97,7 @@ class HAFFmpeg(object):
             else asyncio.subprocess.DEVNULL
 
         if self.is_running:
-            _LOGGER.critical("FFmpeg is allready running!")
+            _LOGGER.warning("FFmpeg is allready running!")
             return
 
         # set command line
@@ -122,7 +122,7 @@ class HAFFmpeg(object):
     def close(self, timeout=5):
         """Stop a ffmpeg instance."""
         if not self.is_running:
-            _LOGGER.error("FFmpeg isn't running!")
+            _LOGGER.warning("FFmpeg isn't running!")
             return
 
         try:
@@ -146,7 +146,10 @@ class HAFFmpeg(object):
         return True
 
     def read(self, count=-1):
-        """Read data like a file handle."""
+        """Read data like a file handle.
+
+        Return a coroutine
+        """
         return self._proc.stdout.read(count)
 
 
@@ -159,6 +162,17 @@ class HAFFmpegWorker(HAFFmpeg):
 
         self._que = asyncio.Queue(loop=loop)
         self._input = None
+        self._read_task = None
+
+    def close(self, timeout=5):
+        """Stop a ffmpeg instance.
+
+        Return a coroutine
+        """
+        if self._read_task is not None and not self._read_task.cancelled:
+            self._read_task.cancel()
+
+        return super().close(timeout)
 
     @asyncio.coroutine
     def _process_lines(self, pattern=None):
@@ -201,11 +215,9 @@ class HAFFmpegWorker(HAFFmpeg):
         if reading == FFMPEG_STDERR:
             stdout = False
             stderr = True
-            self._input = self._proc.stderr
         else:
             stdout = True
             stderr = False
-            self._input = self._proc.stdout
 
         # start ffmpeg and reading to queue
         yield from self.open(
@@ -216,5 +228,5 @@ class HAFFmpegWorker(HAFFmpeg):
             else self._proc.stdout
 
         # start background processing
-        self._loop.create_task(self._process_lines(pattern))
+        self._read_task = self._loop.create_task(self._process_lines(pattern))
         self._loop.create_task(self._worker_process())
