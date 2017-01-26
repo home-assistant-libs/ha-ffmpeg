@@ -169,7 +169,7 @@ class HAFFmpegWorker(HAFFmpeg):
 
         Return a coroutine
         """
-        if self._read_task is not None and not self._read_task.cancelled:
+        if self._read_task is not None and not self._read_task.cancelled():
             self._read_task.cancel()
 
         return super().close(timeout)
