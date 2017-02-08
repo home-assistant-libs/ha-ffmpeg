@@ -186,6 +186,8 @@ class HAFFmpegWorker(HAFFmpeg):
         while self.is_running:
             try:
                 line = yield from self._input.readline()
+                if not line:
+                    break
                 line = line.decode()
             # pylint: disable=broad-except
             except Exception:
