@@ -65,7 +65,7 @@ class SensorNoise(HAFFmpegWorker):
                     data = yield from self._que.get()
                 timeout = None
                 if data is None:
-                    self._loop.call_soon(self._callback, None)
+                    self._loop.call_later(2, self._callback, None)
                     return
             except asyncio.TimeoutError:
                 _LOGGER.debug("Blocking timeout")
@@ -166,7 +166,7 @@ class SensorMotion(HAFFmpegWorker):
                 with async_timeout.timeout(timeout, loop=self._loop):
                     data = yield from self._que.get()
                 if data is None:
-                    self._loop.call_soon(self._callback, None)
+                    self._loop.call_later(2, self._callback, None)
                     return
             except asyncio.TimeoutError:
                 _LOGGER.debug("Blocking timeout")
