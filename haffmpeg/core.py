@@ -130,13 +130,17 @@ class HAFFmpeg(object):
             with async_timeout.timeout(timeout, loop=self._loop):
                 yield from self._proc.communicate(input=b'q')
             _LOGGER.debug("Close FFmpeg process")
+
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
-            yield from self._proc.wait()
+            
+        except asyncio.CancelledError:
+            self._proc.kill()
+            raise
 
-        # clean ffmpeg cmd
-        self._clear()
+        finally:
+            self._clear()
 
     @property
     def is_running(self):

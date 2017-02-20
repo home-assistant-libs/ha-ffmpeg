@@ -11,11 +11,6 @@ _LOGGER = logging.getLogger(__name__)
 IMAGE_JPEG = 'mjpeg'
 IMAGE_PNG = 'png'
 
-IMAGE_MAGIC = {
-    IMAGE_JPEG: b'\xFF\xD8\xFF',
-    IMAGE_PNG: b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A',
-}
-
 
 class Test(HAFFmpeg):
     """Test a ffmpeg/mulimedia file/stream."""
@@ -42,9 +37,9 @@ class Test(HAFFmpeg):
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
                 out, error = yield from self._proc.communicate()
-        except (asyncio.TimeoutError, ValueError):
-            _LOGGER.warning("Timeout reading test.")
-            yield from self.close()
+        except:
+            _LOGGER.warning("Timeout/Error reading test.")
+            self._proc.kill()
             return False
 
         # check error code
@@ -84,9 +79,9 @@ class ImageFrame(HAFFmpeg):
 
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout reading image.")
-            yield from self.close()
+            self._proc.kill()
             return None
 
-        except asyncio.CancelledError as err:
-            yield from self.close()
-            raise err
+        except asyncio.CancelledError:
+            self._proc.kill()
+            raise
