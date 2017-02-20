@@ -134,7 +134,7 @@ class HAFFmpeg(object):
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
-            
+
         except asyncio.CancelledError:
             self._proc.kill()
             raise

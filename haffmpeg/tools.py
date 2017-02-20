@@ -37,7 +37,8 @@ class Test(HAFFmpeg):
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
                 out, error = yield from self._proc.communicate()
-        except:
+        # pylint: disable=broad-except
+        except Exception:
             _LOGGER.warning("Timeout/Error reading test.")
             self._proc.kill()
             return False
