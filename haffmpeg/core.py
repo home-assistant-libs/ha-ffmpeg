@@ -203,8 +203,11 @@ class HAFFmpegWorker(HAFFmpeg):
                 _LOGGER.debug("Process: %s", line)
                 yield from self._que.put(line)
 
-        yield from self._que.put(None)
-        _LOGGER.debug("Close read ffmpeg output.")
+        try:
+            yield from self._proc.wait()
+        finally:
+            yield from self._que.put(None)
+            _LOGGER.debug("Close read ffmpeg output.")
 
     @asyncio.coroutine
     def _worker_process(self):
