@@ -204,9 +204,8 @@ class HAFFmpegWorker(HAFFmpeg):
                 yield from self._que.put(line)
 
         try:
-            if self.is_running:
-                yield from self._proc.wait()
-        finaly:
+            yield from self._proc.wait()
+        finally:
             yield from self._que.put(None)
             _LOGGER.debug("Close read ffmpeg output.")
 
