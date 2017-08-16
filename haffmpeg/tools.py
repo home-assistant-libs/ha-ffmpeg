@@ -36,9 +36,10 @@ class Test(HAFFmpeg):
 
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                out, error = yield from self._proc.communicate()
-        # pylint: disable=broad-except
-        except Exception:
+                out, error = yield from asyncio.shield(
+                    self._proc.communicate(), loop=self._loop)
+
+        except (OSError, asyncio.TimeoutError):
             _LOGGER.warning("Timeout/Error reading test.")
             self._proc.kill()
             return False
@@ -47,6 +48,8 @@ class Test(HAFFmpeg):
         if self._proc.returncode == 0:
             _LOGGER.debug("STD: %s / ERR: %s", out, error)
             return True
+
+        # error state
         _LOGGER.error("ReturnCode: %i / STD: %s / ERR: %s",
                       self._proc.returncode, out, error)
         return False
@@ -75,7 +78,9 @@ class ImageFrame(HAFFmpeg):
         # read image
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                image, _ = yield from self._proc.communicate()
+                image, _ = yield from asyncio.shield(
+                    self._proc.communicate(), loop=self._loop)
+
             return image
 
         except (asyncio.TimeoutError, ValueError):
