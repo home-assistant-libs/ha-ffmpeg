@@ -117,6 +117,9 @@ class HAFFmpeg(object):
         except Exception as err:
             _LOGGER.exception("FFmpeg fails %s", err)
             self._clear()
+            return False
+
+        return self._proc is not None
 
     @asyncio.coroutine
     def close(self, timeout=5):
@@ -128,17 +131,12 @@ class HAFFmpeg(object):
         try:
             # send stop to ffmpeg
             with async_timeout.timeout(timeout, loop=self._loop):
-                yield from asyncio.shield(
-                    self._proc.communicate(input=b'q'), loop=self._loop)
+                yield from self._proc.communicate(input=b'q')
             _LOGGER.debug("Close FFmpeg process")
 
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
-
-        except asyncio.CancelledError:
-            self._proc.kill()
-            raise
 
         finally:
             self._clear()
