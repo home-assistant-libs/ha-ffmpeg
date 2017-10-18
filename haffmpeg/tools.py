@@ -26,20 +26,19 @@ class Test(HAFFmpeg):
         ]
 
         # Run a short test with input
-        yield from self.open(
+        is_open = yield from self.open(
             cmd=command, input_source=input_source, stderr_pipe=True,
             output=None)
 
         # error after open?
-        if self._proc is None:
+        if not is_open:
             return False
 
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                out, error = yield from asyncio.shield(
-                    self._proc.communicate(), loop=self._loop)
+                out, error = yield from self._proc.communicate()
 
-        except (OSError, asyncio.TimeoutError):
+        except (OSError, asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout/Error reading test.")
             self._proc.kill()
             return False
@@ -71,20 +70,19 @@ class ImageFrame(HAFFmpeg):
         ]
 
         # open input for capture 1 frame
-        yield from self.open(
+        is_open = yield from self.open(
             cmd=command, input_source=input_source, output="-f image2pipe -",
             extra_cmd=extra_cmd)
 
         # error after open?
-        if self._proc is None:
+        if not is_open:
             _LOGGER.warning("Error starting FFmpeg.")
             return None
 
         # read image
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                image, _ = yield from asyncio.shield(
-                    self._proc.communicate(), loop=self._loop)
+                image, _ = self._proc.communicate()
 
             return image
 
@@ -92,7 +90,3 @@ class ImageFrame(HAFFmpeg):
             _LOGGER.warning("Timeout reading image.")
             self._proc.kill()
             return None
-
-        except asyncio.CancelledError:
-            self._proc.kill()
-            raise
