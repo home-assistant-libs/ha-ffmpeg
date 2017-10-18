@@ -6,6 +6,8 @@ A python library that handling with ffmpeg for home-assistant Async
 - Analyse a video/audio stream for noise or motion detection
 - Grab image from a stream
 
+Be carfully that you protect function calls with `asyncio.shield`.
+
 Links
 -----
 - http://home-assistant.io
