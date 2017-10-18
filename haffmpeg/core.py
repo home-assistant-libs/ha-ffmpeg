@@ -47,7 +47,7 @@ class HAFFmpeg(object):
 
     def _put_input(self, input_source):
         """Put input string to ffmpeg command."""
-        input_cmd = shlex.split(input_source)
+        input_cmd = shlex.split(str(input_source))
         if len(input_cmd) > 1:
             self._argv.extend(input_cmd)
         else:
@@ -59,7 +59,7 @@ class HAFFmpeg(object):
             self._argv.extend(['-f', 'null', '-'])
             return
 
-        output_cmd = shlex.split(output)
+        output_cmd = shlex.split(str(output))
         if len(output_cmd) > 1:
             self._argv.extend(output_cmd)
         else:
@@ -117,6 +117,9 @@ class HAFFmpeg(object):
         except Exception as err:
             _LOGGER.exception("FFmpeg fails %s", err)
             self._clear()
+            return False
+
+        return self._proc is not None
 
     @asyncio.coroutine
     def close(self, timeout=5):
@@ -128,17 +131,12 @@ class HAFFmpeg(object):
         try:
             # send stop to ffmpeg
             with async_timeout.timeout(timeout, loop=self._loop):
-                yield from asyncio.shield(
-                    self._proc.communicate(input=b'q'), loop=self._loop)
+                yield from self._proc.communicate(input=b'q')
             _LOGGER.debug("Close FFmpeg process")
 
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self._proc.kill()
-
-        except asyncio.CancelledError:
-            self._proc.kill()
-            raise
 
         finally:
             self._clear()
