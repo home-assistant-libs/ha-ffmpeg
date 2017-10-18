@@ -47,7 +47,7 @@ class HAFFmpeg(object):
 
     def _put_input(self, input_source):
         """Put input string to ffmpeg command."""
-        input_cmd = shlex.split(input_source)
+        input_cmd = shlex.split(str(input_source))
         if len(input_cmd) > 1:
             self._argv.extend(input_cmd)
         else:
@@ -59,7 +59,7 @@ class HAFFmpeg(object):
             self._argv.extend(['-f', 'null', '-'])
             return
 
-        output_cmd = shlex.split(output)
+        output_cmd = shlex.split(str(output))
         if len(output_cmd) > 1:
             self._argv.extend(output_cmd)
         else:
