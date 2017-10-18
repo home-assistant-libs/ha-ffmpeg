@@ -75,6 +75,11 @@ class ImageFrame(HAFFmpeg):
             cmd=command, input_source=input_source, output="-f image2pipe -",
             extra_cmd=extra_cmd)
 
+        # error after open?
+        if self._proc is None:
+            _LOGGER.warning("Error starting FFmpeg.")
+            return None
+
         # read image
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
