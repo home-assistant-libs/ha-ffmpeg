@@ -82,7 +82,7 @@ class ImageFrame(HAFFmpeg):
         # read image
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                image, _ = self._proc.communicate()
+                image, _ = yield from self._proc.communicate()
 
             return image
 
