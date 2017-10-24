@@ -1,4 +1,4 @@
-ha_ffmpeg
+Home-Assistant ffmpeg interface
 ============
 A python library that handling with ffmpeg for home-assistant Async
 
