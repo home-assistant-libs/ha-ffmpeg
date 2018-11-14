@@ -54,6 +54,8 @@ class SensorNoise(HAFFmpegWorker):
         state = self.STATE_DETECT
         timeout = self._time_duration
 
+        self._loop.call_soon(self._callback, False)
+
         re_start = re.compile("silence_start")
         re_end = re.compile("silence_end")
 
@@ -152,6 +154,8 @@ class SensorMotion(HAFFmpegWorker):
         """This function processing data."""
         state = self.STATE_NONE
         timeout = None
+
+        self._loop.call_soon(self._callback, False)
 
         # for repeat feature
         re_frame = 0
