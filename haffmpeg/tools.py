@@ -15,8 +15,7 @@ IMAGE_PNG = 'png'
 class ImageFrame(HAFFmpeg):
     """Implement a single image caputre from a stream."""
 
-    @asyncio.coroutine
-    def get_image(self, input_source, output_format=IMAGE_JPEG, extra_cmd=None,
+    async def get_image(self, input_source, output_format=IMAGE_JPEG, extra_cmd=None,
                   timeout=15):
         """Open FFmpeg process as capture 1 frame."""
         command = [
@@ -28,7 +27,7 @@ class ImageFrame(HAFFmpeg):
         ]
 
         # open input for capture 1 frame
-        is_open = yield from self.open(
+        is_open = await self.open(
             cmd=command, input_source=input_source, output="-f image2pipe -",
             extra_cmd=extra_cmd)
 
@@ -40,7 +39,7 @@ class ImageFrame(HAFFmpeg):
         # read image
         try:
             with async_timeout.timeout(timeout, loop=self._loop):
-                image, _ = yield from self._proc.communicate()
+                image, _ = await self._proc.communicate()
 
             return image
 
