@@ -12,7 +12,7 @@ FFMPEG_STDOUT = 'stdout'
 FFMPEG_STDERR = 'stderr'
 
 
-class HAFFmpeg(object):
+class HAFFmpeg:
     """HA FFmpeg process async.
 
     Object is iterable or use the process property to call from Popen object.
@@ -88,7 +88,7 @@ class HAFFmpeg(object):
         self._proc = None
 
     async def open(self, cmd, input_source, output="-", extra_cmd=None,
-             stdout_pipe=True, stderr_pipe=False):
+                   stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
         stdout = asyncio.subprocess.PIPE if stdout_pipe\
             else asyncio.subprocess.DEVNULL
@@ -97,7 +97,7 @@ class HAFFmpeg(object):
 
         if self.is_running:
             _LOGGER.warning("FFmpeg is allready running!")
-            return
+            return True
 
         # set command line
         self._generate_ffmpeg_cmd(cmd, input_source, output, extra_cmd)
