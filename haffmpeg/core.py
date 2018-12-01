@@ -196,7 +196,7 @@ class HAFFmpegWorker(HAFFmpeg):
             match = True if pattern is None else cmp.search(line)
             if match:
                 _LOGGER.debug("Process: %s", line)
-                yield from self._que.put(line)
+                await self._que.put(line)
 
         try:
             await self._proc.wait()
