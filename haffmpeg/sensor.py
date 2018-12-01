@@ -34,7 +34,8 @@ class SensorNoise(HAFFmpegWorker):
         self._time_reset = time_reset
         self._peak = peak
 
-    async def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
+    async def open_sensor(self, input_source, output_dest=None,
+                          extra_cmd=None):
         """Open FFmpeg process for read autio stream."""
         command = [
             "-vn",
