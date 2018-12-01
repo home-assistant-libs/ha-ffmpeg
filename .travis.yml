@@ -8,6 +8,7 @@ matrix:
       env: TOXENV=lint
     - python: "3.7"
       env: TOXENV=lint
+      dist: xenial
 install: pip install -U tox
 language: python
 script: tox
