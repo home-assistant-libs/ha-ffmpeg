@@ -208,8 +208,9 @@ class HAFFmpegWorker(HAFFmpeg):
         """Process output line."""
         raise NotImplementedError()
 
-    async def start_worker(self, cmd, input_source, output=None, extra_cmd=None,
-                           pattern=None, reading=FFMPEG_STDERR):
+    async def start_worker(self, cmd, input_source, output=None,
+                           extra_cmd=None, pattern=None,
+                           reading=FFMPEG_STDERR):
         """Start ffmpeg do process data from output."""
         if self.is_running:
             _LOGGER.warning("Can't start worker. It is allready running!")
