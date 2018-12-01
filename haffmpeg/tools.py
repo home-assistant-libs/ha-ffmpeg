@@ -15,8 +15,8 @@ IMAGE_PNG = 'png'
 class ImageFrame(HAFFmpeg):
     """Implement a single image caputre from a stream."""
 
-    async def get_image(self, input_source, output_format=IMAGE_JPEG, extra_cmd=None,
-                        timeout=15):
+    async def get_image(self, input_source, output_format=IMAGE_JPEG,
+                        extra_cmd=None, timeout=15):
         """Open FFmpeg process as capture 1 frame."""
         command = [
             "-an",
