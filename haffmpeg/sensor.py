@@ -34,8 +34,8 @@ class SensorNoise(HAFFmpegWorker):
         self._time_reset = time_reset
         self._peak = peak
 
-    @asyncio.coroutine
-    def open_sensor(self, input_source, output_dest=None, extra_cmd=None):
+    async def open_sensor(self, input_source, output_dest=None,
+                          extra_cmd=None):
         """Open FFmpeg process for read autio stream."""
         command = [
             "-vn",
@@ -44,12 +44,11 @@ class SensorNoise(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        yield from self.start_worker(
+        await self.start_worker(
             cmd=command, input_source=input_source, output=output_dest,
             extra_cmd=extra_cmd, pattern="silence")
 
-    @asyncio.coroutine
-    def _worker_process(self):
+    async def _worker_process(self):
         """This function processing data."""
         state = self.STATE_DETECT
         timeout = self._time_duration
@@ -64,7 +63,7 @@ class SensorNoise(HAFFmpegWorker):
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
                 with async_timeout.timeout(timeout, loop=self._loop):
-                    data = yield from self._que.get()
+                    data = await self._que.get()
                 timeout = None
                 if data is None:
                     self._loop.call_soon(self._callback, None)
@@ -135,8 +134,7 @@ class SensorMotion(HAFFmpegWorker):
         self._repeat = repeat
         self._changes = changes
 
-    @asyncio.coroutine
-    def open_sensor(self, input_source, extra_cmd=None):
+    async def open_sensor(self, input_source, extra_cmd=None):
         """Open FFmpeg process a video stream for motion detection."""
         command = [
             "-an",
@@ -145,12 +143,11 @@ class SensorMotion(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        yield from self.start_worker(
+        await self.start_worker(
             cmd=command, input_source=input_source, output="-f framemd5 -",
             extra_cmd=extra_cmd, pattern=self.MATCH, reading=FFMPEG_STDOUT)
 
-    @asyncio.coroutine
-    def _worker_process(self):
+    async def _worker_process(self):
         """This function processing data."""
         state = self.STATE_NONE
         timeout = None
@@ -168,7 +165,7 @@ class SensorMotion(HAFFmpegWorker):
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
                 with async_timeout.timeout(timeout, loop=self._loop):
-                    data = yield from self._que.get()
+                    data = await self._que.get()
                 if data is None:
                     self._loop.call_soon(self._callback, None)
                     return

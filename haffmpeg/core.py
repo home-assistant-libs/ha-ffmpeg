@@ -12,7 +12,7 @@ FFMPEG_STDOUT = 'stdout'
 FFMPEG_STDERR = 'stderr'
 
 
-class HAFFmpeg(object):
+class HAFFmpeg:
     """HA FFmpeg process async.
 
     Object is iterable or use the process property to call from Popen object.
@@ -87,9 +87,8 @@ class HAFFmpeg(object):
         self._argv = None
         self._proc = None
 
-    @asyncio.coroutine
-    def open(self, cmd, input_source, output="-", extra_cmd=None,
-             stdout_pipe=True, stderr_pipe=False):
+    async def open(self, cmd, input_source, output="-", extra_cmd=None,
+                   stdout_pipe=True, stderr_pipe=False):
         """Start a ffmpeg instance and pipe output."""
         stdout = asyncio.subprocess.PIPE if stdout_pipe\
             else asyncio.subprocess.DEVNULL
@@ -98,7 +97,7 @@ class HAFFmpeg(object):
 
         if self.is_running:
             _LOGGER.warning("FFmpeg is allready running!")
-            return
+            return True
 
         # set command line
         self._generate_ffmpeg_cmd(cmd, input_source, output, extra_cmd)
@@ -106,7 +105,7 @@ class HAFFmpeg(object):
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
         try:
-            self._proc = yield from asyncio.create_subprocess_exec(
+            self._proc = await asyncio.create_subprocess_exec(
                 *self._argv,
                 loop=self._loop,
                 stdin=asyncio.subprocess.PIPE,
@@ -121,8 +120,7 @@ class HAFFmpeg(object):
 
         return self._proc is not None
 
-    @asyncio.coroutine
-    def close(self, timeout=5):
+    async def close(self, timeout=5):
         """Stop a ffmpeg instance."""
         if not self.is_running:
             _LOGGER.warning("FFmpeg isn't running!")
@@ -131,7 +129,7 @@ class HAFFmpeg(object):
         try:
             # send stop to ffmpeg
             with async_timeout.timeout(timeout, loop=self._loop):
-                yield from self._proc.communicate(input=b'q')
+                await self._proc.communicate(input=b'q')
             _LOGGER.debug("Close FFmpeg process")
 
         except (asyncio.TimeoutError, ValueError):
@@ -177,8 +175,7 @@ class HAFFmpegWorker(HAFFmpeg):
 
         return super().close(timeout)
 
-    @asyncio.coroutine
-    def _process_lines(self, pattern=None):
+    async def _process_lines(self, pattern=None):
         """Read line from pipe they match with pattern."""
         if pattern is not None:
             cmp = re.compile(pattern)
@@ -188,7 +185,7 @@ class HAFFmpegWorker(HAFFmpeg):
         # read lines
         while self.is_running:
             try:
-                line = yield from self._input.readline()
+                line = await self._input.readline()
                 if not line:
                     break
                 line = line.decode()
@@ -199,22 +196,21 @@ class HAFFmpegWorker(HAFFmpeg):
             match = True if pattern is None else cmp.search(line)
             if match:
                 _LOGGER.debug("Process: %s", line)
-                yield from self._que.put(line)
+                await self._que.put(line)
 
         try:
-            yield from self._proc.wait()
+            await self._proc.wait()
         finally:
-            yield from self._que.put(None)
+            await self._que.put(None)
             _LOGGER.debug("Close read ffmpeg output.")
 
-    @asyncio.coroutine
-    def _worker_process(self):
+    async def _worker_process(self):
         """Process output line."""
         raise NotImplementedError()
 
-    @asyncio.coroutine
-    def start_worker(self, cmd, input_source, output=None, extra_cmd=None,
-                     pattern=None, reading=FFMPEG_STDERR):
+    async def start_worker(self, cmd, input_source, output=None,
+                           extra_cmd=None, pattern=None,
+                           reading=FFMPEG_STDERR):
         """Start ffmpeg do process data from output."""
         if self.is_running:
             _LOGGER.warning("Can't start worker. It is allready running!")
@@ -228,7 +224,7 @@ class HAFFmpegWorker(HAFFmpeg):
             stderr = False
 
         # start ffmpeg and reading to queue
-        yield from self.open(
+        await self.open(
             cmd=cmd, input_source=input_source, output=output,
             extra_cmd=extra_cmd, stdout_pipe=stdout, stderr_pipe=stderr)
 
