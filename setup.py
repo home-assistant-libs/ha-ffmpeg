@@ -3,7 +3,7 @@ from setuptools import setup
 with open('README.rst') as f:
     long_description = f.read()
 
-VERSION = "1.9"
+VERSION = "1.10"
 
 setup(
     name='ha-ffmpeg',
@@ -23,9 +23,9 @@ setup(
         'Operating System :: OS Independent',
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     keywords=['ffmpeg', 'homeassistant', 'wrapper', 'api'],
     zip_safe=False,
