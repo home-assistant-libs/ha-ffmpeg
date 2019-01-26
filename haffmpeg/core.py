@@ -35,7 +35,8 @@ class HAFFmpeg:
         self._argv = [self._ffmpeg]
 
         # start command init
-        self._put_input(input_source)
+        if input_source is not None:
+            self._put_input(input_source)
         self._argv.extend(cmd)
 
         # exists a extra cmd from customer
@@ -96,7 +97,7 @@ class HAFFmpeg:
             else asyncio.subprocess.DEVNULL
 
         if self.is_running:
-            _LOGGER.warning("FFmpeg is allready running!")
+            _LOGGER.warning("FFmpeg is already running!")
             return True
 
         # set command line
@@ -138,6 +139,23 @@ class HAFFmpeg:
 
         finally:
             self._clear()
+
+    async def version(self):
+        """Return full ffmpeg version string.
+
+        Such as 3.4.2-tessus
+        """
+        if self.is_running:
+            _LOGGER.warning("FFmpeg is already running!")
+            return
+
+        if await self.open(["-version"], None, ""):
+            output = await self.read()
+            await self.close()
+
+            result = re.search(r"ffmpeg version (\S*)", output.decode())
+            if result is not None:
+                return result.group(1)
 
     @property
     def is_running(self):
