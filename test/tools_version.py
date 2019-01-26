@@ -4,7 +4,7 @@ import click
 import asyncio
 
 sys.path.append("../")
-from haffmpeg import HAFFmpeg
+from haffmpeg.tools import FFVersion
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,8 +15,8 @@ def cli(ffmpeg):
     """FFMPEG version."""
 
     loop = asyncio.get_event_loop()
-    ha_ffmpeg = HAFFmpeg(ffmpeg_bin=ffmpeg, loop=loop)
-    future = asyncio.ensure_future(ha_ffmpeg.version())
+    ffversion = FFVersion(ffmpeg_bin=ffmpeg, loop=loop)
+    future = asyncio.ensure_future(ffversion.get_version())
     loop.run_until_complete(future)
     print(future.result())
 
