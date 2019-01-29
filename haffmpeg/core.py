@@ -35,7 +35,8 @@ class HAFFmpeg:
         self._argv = [self._ffmpeg]
 
         # start command init
-        self._put_input(input_source)
+        if input_source is not None:
+            self._put_input(input_source)
         self._argv.extend(cmd)
 
         # exists a extra cmd from customer
@@ -96,7 +97,7 @@ class HAFFmpeg:
             else asyncio.subprocess.DEVNULL
 
         if self.is_running:
-            _LOGGER.warning("FFmpeg is allready running!")
+            _LOGGER.warning("FFmpeg is already running!")
             return True
 
         # set command line
