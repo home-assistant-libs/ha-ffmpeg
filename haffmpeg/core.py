@@ -1,15 +1,18 @@
 """Base functionality of ffmpeg HA wrapper."""
 import asyncio
+import functools
 import logging
 import re
 import shlex
+import subprocess
+from typing import Coroutine, List, Optional
 
 import async_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
-FFMPEG_STDOUT = 'stdout'
-FFMPEG_STDERR = 'stderr'
+FFMPEG_STDOUT = "stdout"
+FFMPEG_STDERR = "stderr"
 
 
 class HAFFmpeg:
@@ -18,7 +21,7 @@ class HAFFmpeg:
     Object is iterable or use the process property to call from Popen object.
     """
 
-    def __init__(self, ffmpeg_bin, loop):
+    def __init__(self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop):
         """Base initialize."""
         self._loop = loop
         self._ffmpeg = ffmpeg_bin
@@ -26,11 +29,24 @@ class HAFFmpeg:
         self._proc = None
 
     @property
-    def process(self):
+    def process(self) -> subprocess.Popen:
         """Return a Popen object or None of not running."""
         return self._proc
 
-    def _generate_ffmpeg_cmd(self, cmd, input_source, output, extra_cmd=None):
+    @property
+    def is_running(self) -> bool:
+        """Return True if ffmpeg is running."""
+        if self._proc is None or self._proc.returncode is not None:
+            return False
+        return True
+
+    def _generate_ffmpeg_cmd(
+        self,
+        cmd: List[str],
+        input_source: Optional[str],
+        output: Optional[str],
+        extra_cmd: Optional[str] = None,
+    ) -> None:
         """Generate ffmpeg command line."""
         self._argv = [self._ffmpeg]
 
@@ -46,18 +62,18 @@ class HAFFmpeg:
         self._merge_filters()
         self._put_output(output)
 
-    def _put_input(self, input_source):
+    def _put_input(self, input_source: str) -> None:
         """Put input string to ffmpeg command."""
         input_cmd = shlex.split(str(input_source))
         if len(input_cmd) > 1:
             self._argv.extend(input_cmd)
         else:
-            self._argv.extend(['-i', input_source])
+            self._argv.extend(["-i", input_source])
 
-    def _put_output(self, output):
+    def _put_output(self, output: Optional[str]) -> None:
         """Put output string to ffmpeg command."""
         if output is None:
-            self._argv.extend(['-f', 'null', '-'])
+            self._argv.extend(["-f", "null", "-"])
             return
 
         output_cmd = shlex.split(str(output))
@@ -66,9 +82,9 @@ class HAFFmpeg:
         else:
             self._argv.append(output)
 
-    def _merge_filters(self):
+    def _merge_filters(self) -> None:
         """Merge all filter config in command line."""
-        for opts in (['-filter:a', '-af'], ['-filter:v', '-vf']):
+        for opts in (["-filter:a", "-af"], ["-filter:v", "-vf"]):
             filter_list = []
             new_argv = []
             cmd_iter = iter(self._argv)
@@ -83,18 +99,23 @@ class HAFFmpeg:
                 new_argv.extend([opts[0], ",".join(filter_list)])
                 self._argv = new_argv.copy()
 
-    def _clear(self):
+    def _clear(self) -> None:
         """Clear member variable after close."""
         self._argv = None
         self._proc = None
 
-    async def open(self, cmd, input_source, output="-", extra_cmd=None,
-                   stdout_pipe=True, stderr_pipe=False):
+    async def open(
+        self,
+        cmd: List[str],
+        input_source: Optional[str],
+        output: Optional[str] = "-",
+        extra_cmd: Optional[str] = None,
+        stdout_pipe: bool = True,
+        stderr_pipe: bool = False,
+    ) -> bool:
         """Start a ffmpeg instance and pipe output."""
-        stdout = asyncio.subprocess.PIPE if stdout_pipe\
-            else asyncio.subprocess.DEVNULL
-        stderr = asyncio.subprocess.PIPE if stderr_pipe\
-            else asyncio.subprocess.DEVNULL
+        stdout = subprocess.PIPE if stdout_pipe else subprocess.DEVNULL
+        stderr = subprocess.PIPE if stderr_pipe else subprocess.DEVNULL
 
         if self.is_running:
             _LOGGER.warning("FFmpeg is already running!")
@@ -106,22 +127,23 @@ class HAFFmpeg:
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
         try:
-            self._proc = await asyncio.create_subprocess_exec(
-                *self._argv,
-                loop=self._loop,
-                stdin=asyncio.subprocess.PIPE,
+            proc_func = functools.partial(
+                subprocess.Popen,
+                self._argv,
+                bufsize=0,
+                stdin=subprocess.PIPE,
                 stdout=stdout,
-                stderr=stderr
+                stderr=stderr,
             )
-        # pylint: disable=broad-except
-        except Exception as err:
+            self._proc = await self._loop.run_in_executor(None, proc_func)
+        except Exception as err:  # pylint: disable=broad-except
             _LOGGER.exception("FFmpeg fails %s", err)
             self._clear()
             return False
 
         return self._proc is not None
 
-    async def close(self, timeout=5):
+    async def close(self, timeout=5) -> None:
         """Stop a ffmpeg instance."""
         if not self.is_running:
             _LOGGER.warning("FFmpeg isn't running!")
@@ -129,36 +151,47 @@ class HAFFmpeg:
 
         try:
             # send stop to ffmpeg
-            with async_timeout.timeout(timeout, loop=self._loop):
-                await self._proc.communicate(input=b'q')
+            proc_func = functools.partial(
+                self._proc.communicate, input=b"q", timeout=timeout
+            )
+            await self._loop.run_in_executor(None, proc_func)
             _LOGGER.debug("Close FFmpeg process")
 
-        except (asyncio.TimeoutError, ValueError):
+        except (subprocess.TimeoutExpired, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
-            self._proc.kill()
+            self.kill()
 
         finally:
             self._clear()
 
-    @property
-    def is_running(self):
-        """Return True if ffmpeg is running."""
-        if self._proc is None or self._proc.returncode is not None:
-            return False
-        return True
+    def kill(self) -> None:
+        """Kill ffmpeg job."""
+        self._proc.kill()
+        self._loop.run_in_executor(None, self._proc.communicate)
 
-    def read(self, count=-1):
-        """Read data like a file handle.
+    async def get_reader(self, input=FFMPEG_STDOUT) -> asyncio.StreamReader:
+        """Create and return streamreader."""
+        reader = asyncio.StreamReader(loop=self._loop)
+        reader_protocol = asyncio.StreamReaderProtocol(reader)
 
-        Return a coroutine
-        """
-        return self._proc.stdout.read(count)
+        # Attach stream
+        if input == FFMPEG_STDOUT:
+            await self._loop.connect_read_pipe(
+                lambda: reader_protocol, self._proc.stdout
+            )
+        else:
+            await self._loop.connect_read_pipe(
+                lambda: reader_protocol, self._proc.stderr
+            )
+
+        # Start reader
+        return reader
 
 
 class HAFFmpegWorker(HAFFmpeg):
     """Read FFmpeg output to que."""
 
-    def __init__(self, ffmpeg_bin, loop):
+    def __init__(self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop):
         """Init noise sensor."""
         super().__init__(ffmpeg_bin, loop)
 
@@ -166,7 +199,7 @@ class HAFFmpegWorker(HAFFmpeg):
         self._input = None
         self._read_task = None
 
-    def close(self, timeout=5):
+    def close(self, timeout: int = 5) -> None:
         """Stop a ffmpeg instance.
 
         Return a coroutine
@@ -176,7 +209,7 @@ class HAFFmpegWorker(HAFFmpeg):
 
         return super().close(timeout)
 
-    async def _process_lines(self, pattern=None):
+    async def _process_lines(self, pattern: Optional[str] = None) -> None:
         """Read line from pipe they match with pattern."""
         if pattern is not None:
             cmp = re.compile(pattern)
@@ -190,8 +223,7 @@ class HAFFmpegWorker(HAFFmpeg):
                 if not line:
                     break
                 line = line.decode()
-            # pylint: disable=broad-except
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 break
 
             match = True if pattern is None else cmp.search(line)
@@ -205,13 +237,19 @@ class HAFFmpegWorker(HAFFmpeg):
             await self._que.put(None)
             _LOGGER.debug("Close read ffmpeg output.")
 
-    async def _worker_process(self):
+    async def _worker_process(self) -> None:
         """Process output line."""
         raise NotImplementedError()
 
-    async def start_worker(self, cmd, input_source, output=None,
-                           extra_cmd=None, pattern=None,
-                           reading=FFMPEG_STDERR):
+    async def start_worker(
+        self,
+        cmd: List[str],
+        input_source: str,
+        output: Optional[str] = None,
+        extra_cmd: Optional[str] = None,
+        pattern: Optional[str] = None,
+        reading: str = FFMPEG_STDERR,
+    ) -> None:
         """Start ffmpeg do process data from output."""
         if self.is_running:
             _LOGGER.warning("Can't start worker. It is allready running!")
@@ -226,11 +264,15 @@ class HAFFmpegWorker(HAFFmpeg):
 
         # start ffmpeg and reading to queue
         await self.open(
-            cmd=cmd, input_source=input_source, output=output,
-            extra_cmd=extra_cmd, stdout_pipe=stdout, stderr_pipe=stderr)
+            cmd=cmd,
+            input_source=input_source,
+            output=output,
+            extra_cmd=extra_cmd,
+            stdout_pipe=stdout,
+            stderr_pipe=stderr,
+        )
 
-        self._input = self._proc.stderr if reading == FFMPEG_STDERR \
-            else self._proc.stdout
+        self._input = await self.get_reader(reading)
 
         # start background processing
         self._read_task = self._loop.create_task(self._process_lines(pattern))

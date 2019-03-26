@@ -3,10 +3,11 @@ import asyncio
 import logging
 import re
 from time import time
+from typing import Callable, Optional
 
 import async_timeout
 
-from .core import HAFFmpegWorker, FFMPEG_STDOUT
+from .core import FFMPEG_STDOUT, HAFFmpegWorker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +20,9 @@ class SensorNoise(HAFFmpegWorker):
     STATE_END = 2
     STATE_DETECT = 3
 
-    def __init__(self, ffmpeg_bin, loop, callback):
+    def __init__(
+        self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop, callback: Callable
+    ):
         """Init noise sensor."""
         super().__init__(ffmpeg_bin, loop)
 
@@ -28,27 +31,33 @@ class SensorNoise(HAFFmpegWorker):
         self._time_duration = 1
         self._time_reset = 2
 
-    def set_options(self, time_duration=1, time_reset=2, peak=-30):
+    def set_options(
+        self, time_duration: int = 1, time_reset: int = 2, peak: int = -30
+    ) -> None:
         """Set option parameter for noise sensor."""
         self._time_duration = time_duration
         self._time_reset = time_reset
         self._peak = peak
 
-    async def open_sensor(self, input_source, output_dest=None,
-                          extra_cmd=None):
+    async def open_sensor(
+        self,
+        input_source: str,
+        output_dest: Optional[str] = None,
+        extra_cmd: Optional[str] = None,
+    ) -> None:
         """Open FFmpeg process for read autio stream."""
-        command = [
-            "-vn",
-            "-filter:a",
-            "silencedetect=n={}dB:d=1".format(self._peak)
-        ]
+        command = ["-vn", "-filter:a", "silencedetect=n={}dB:d=1".format(self._peak)]
 
         # run ffmpeg, read output
         await self.start_worker(
-            cmd=command, input_source=input_source, output=output_dest,
-            extra_cmd=extra_cmd, pattern="silence")
+            cmd=command,
+            input_source=input_source,
+            output=output_dest,
+            extra_cmd=extra_cmd,
+            pattern="silence",
+        )
 
-    async def _worker_process(self):
+    async def _worker_process(self) -> None:
         """This function processing data."""
         state = self.STATE_DETECT
         timeout = self._time_duration
@@ -116,7 +125,9 @@ class SensorMotion(HAFFmpegWorker):
 
     MATCH = r"\d,.*\d,.*\d,.*\d,.*\d,.*\w"
 
-    def __init__(self, ffmpeg_bin, loop, callback):
+    def __init__(
+        self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop, callback: Callable
+    ):
         """Init motion sensor."""
         super().__init__(ffmpeg_bin, loop)
 
@@ -126,15 +137,22 @@ class SensorMotion(HAFFmpegWorker):
         self._time_repeat = 0
         self._repeat = 0
 
-    def set_options(self, time_reset=60, time_repeat=0, repeat=0,
-                    changes=10):
+    def set_options(
+        self,
+        time_reset: int = 60,
+        time_repeat: int = 0,
+        repeat: int = 0,
+        changes: int = 10,
+    ) -> None:
         """Set option parameter for noise sensor."""
         self._time_reset = time_reset
         self._time_repeat = time_repeat
         self._repeat = repeat
         self._changes = changes
 
-    async def open_sensor(self, input_source, extra_cmd=None):
+    async def open_sensor(
+        self, input_source: str, extra_cmd: Optional[str] = None
+    ) -> None:
         """Open FFmpeg process a video stream for motion detection."""
         command = [
             "-an",
@@ -144,10 +162,15 @@ class SensorMotion(HAFFmpegWorker):
 
         # run ffmpeg, read output
         await self.start_worker(
-            cmd=command, input_source=input_source, output="-f framemd5 -",
-            extra_cmd=extra_cmd, pattern=self.MATCH, reading=FFMPEG_STDOUT)
+            cmd=command,
+            input_source=input_source,
+            output="-f framemd5 -",
+            extra_cmd=extra_cmd,
+            pattern=self.MATCH,
+            reading=FFMPEG_STDOUT,
+        )
 
-    async def _worker_process(self):
+    async def _worker_process(self) -> None:
         """This function processing data."""
         state = self.STATE_NONE
         timeout = None
