@@ -5,9 +5,7 @@ import logging
 import re
 import shlex
 import subprocess
-from typing import Coroutine, List, Optional
-
-import async_timeout
+from typing import List, Optional
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -169,13 +167,13 @@ class HAFFmpeg:
         self._proc.kill()
         self._loop.run_in_executor(None, self._proc.communicate)
 
-    async def get_reader(self, input=FFMPEG_STDOUT) -> asyncio.StreamReader:
+    async def get_reader(self, source=FFMPEG_STDOUT) -> asyncio.StreamReader:
         """Create and return streamreader."""
         reader = asyncio.StreamReader(loop=self._loop)
         reader_protocol = asyncio.StreamReaderProtocol(reader)
 
         # Attach stream
-        if input == FFMPEG_STDOUT:
+        if source == FFMPEG_STDOUT:
             await self._loop.connect_read_pipe(
                 lambda: reader_protocol, self._proc.stdout
             )

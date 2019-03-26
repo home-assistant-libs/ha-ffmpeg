@@ -1,5 +1,4 @@
 """For HA varios tools."""
-import asyncio
 import functools
 import logging
 import re

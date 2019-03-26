@@ -3,7 +3,7 @@ import asyncio
 import logging
 import re
 from time import time
-from typing import Callable, Optional
+from typing import Callable, Optional, Coroutine
 
 import async_timeout
 
@@ -39,17 +39,20 @@ class SensorNoise(HAFFmpegWorker):
         self._time_reset = time_reset
         self._peak = peak
 
-    async def open_sensor(
+    def open_sensor(
         self,
         input_source: str,
         output_dest: Optional[str] = None,
         extra_cmd: Optional[str] = None,
-    ) -> None:
-        """Open FFmpeg process for read autio stream."""
+    ) -> Coroutine:
+        """Open FFmpeg process for read autio stream.
+
+        Return a coroutine.
+        """
         command = ["-vn", "-filter:a", "silencedetect=n={}dB:d=1".format(self._peak)]
 
         # run ffmpeg, read output
-        await self.start_worker(
+        return self.start_worker(
             cmd=command,
             input_source=input_source,
             output=output_dest,
@@ -150,10 +153,13 @@ class SensorMotion(HAFFmpegWorker):
         self._repeat = repeat
         self._changes = changes
 
-    async def open_sensor(
+    def open_sensor(
         self, input_source: str, extra_cmd: Optional[str] = None
-    ) -> None:
-        """Open FFmpeg process a video stream for motion detection."""
+    ) -> Coroutine:
+        """Open FFmpeg process a video stream for motion detection.
+
+        Return a coroutine.
+        """
         command = [
             "-an",
             "-filter:v",
@@ -161,7 +167,7 @@ class SensorMotion(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        await self.start_worker(
+        return self.start_worker(
             cmd=command,
             input_source=input_source,
             output="-f framemd5 -",
