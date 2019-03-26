@@ -3,8 +3,7 @@ import sys
 import click
 import asyncio
 
-sys.path.append("../")
-from haffmpeg import ImageSingle, IMAGE_JPEG, IMAGE_PNG
+from haffmpeg.tools import ImageFrame, IMAGE_JPEG, IMAGE_PNG
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,7 +18,7 @@ def cli(ffmpeg, source, format_img, output, extra):
     """FFMPEG capture frame as image."""
     loop = asyncio.get_event_loop()
 
-    stream = ImageSingle(ffmpeg_bin=ffmpeg)
+    stream = ImageFrame(ffmpeg_bin=ffmpeg, loop=loop)
     future = asyncio.ensure_future(
         stream.get_image(input_source=source, output_format=format_img, extra_cmd=extra)
     )

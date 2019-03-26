@@ -147,12 +147,15 @@ class HAFFmpeg:
             _LOGGER.warning("FFmpeg isn't running!")
             return
 
+        # Can't use communicate because we attach the output to a streamreader
+        def _close():
+            """Close ffmpeg."""
+            self._proc.stdin.write(b"q")
+            self._proc.wait(timeout=timeout)
+
+        # send stop to ffmpeg
         try:
-            # send stop to ffmpeg
-            proc_func = functools.partial(
-                self._proc.communicate, input=b"q", timeout=timeout
-            )
-            await self._loop.run_in_executor(None, proc_func)
+            await self._loop.run_in_executor(None, _close)
             _LOGGER.debug("Close FFmpeg process")
 
         except (subprocess.TimeoutExpired, ValueError):
@@ -230,7 +233,7 @@ class HAFFmpegWorker(HAFFmpeg):
                 await self._que.put(line)
 
         try:
-            await self._proc.wait()
+            await self._loop.run_in_executor(None, self._proc.wait)
         finally:
             await self._que.put(None)
             _LOGGER.debug("Close read ffmpeg output.")

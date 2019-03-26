@@ -3,7 +3,6 @@ import sys
 import click
 import asyncio
 
-sys.path.append("../")
 from haffmpeg.tools import FFVersion
 
 logging.basicConfig(level=logging.DEBUG)
