@@ -19,9 +19,9 @@ class HAFFmpeg:
     Object is iterable or use the process property to call from Popen object.
     """
 
-    def __init__(self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop):
+    def __init__(self, ffmpeg_bin: str, loop=None: asyncio.BaseEventLoop):
         """Base initialize."""
-        self._loop = loop
+        self._loop = loop or asyncio.asyncio.get_event_loop()
         self._ffmpeg = ffmpeg_bin
         self._argv = None
         self._proc = None
