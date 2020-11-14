@@ -224,6 +224,10 @@ class HAFFmpegWorker(HAFFmpeg):
                 if not line:
                     break
                 line = line.decode()
+            except ValueError as err:
+                await self._input.readexactly(1024)
+                continue
+
             except Exception:  # pylint: disable=broad-except
                 break
 
