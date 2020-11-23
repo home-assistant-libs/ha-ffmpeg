@@ -1,7 +1,7 @@
-import logging
-import sys
-import click
 import asyncio
+import logging
+
+import click
 
 from haffmpeg.tools import FFVersion
 
@@ -13,11 +13,11 @@ logging.basicConfig(level=logging.DEBUG)
 def cli(ffmpeg):
     """FFMPEG version."""
 
-    loop = asyncio.get_event_loop()
-    ffversion = FFVersion(ffmpeg_bin=ffmpeg, loop=loop)
-    future = asyncio.ensure_future(ffversion.get_version())
-    loop.run_until_complete(future)
-    print(future.result())
+    async def get_version():
+        ffversion = FFVersion(ffmpeg_bin=ffmpeg)
+        print(await ffversion.get_version())
+
+    asyncio.run(get_version())
 
 
 if __name__ == "__main__":

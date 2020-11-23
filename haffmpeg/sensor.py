@@ -20,11 +20,9 @@ class SensorNoise(HAFFmpegWorker):
     STATE_END = 2
     STATE_DETECT = 3
 
-    def __init__(
-        self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop, callback: Callable
-    ):
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
         """Init noise sensor."""
-        super().__init__(ffmpeg_bin, loop)
+        super().__init__(ffmpeg_bin)
 
         self._callback = callback
         self._peak = -30
@@ -74,8 +72,8 @@ class SensorNoise(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                with async_timeout.timeout(timeout, loop=self._loop):
-                    data = await self._que.get()
+                with async_timeout.timeout(timeout):
+                    data = await self._queue.get()
                 timeout = None
                 if data is None:
                     self._loop.call_soon(self._callback, None)
@@ -128,11 +126,9 @@ class SensorMotion(HAFFmpegWorker):
 
     MATCH = r"\d,.*\d,.*\d,.*\d,.*\d,.*\w"
 
-    def __init__(
-        self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop, callback: Callable
-    ):
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
         """Init motion sensor."""
-        super().__init__(ffmpeg_bin, loop)
+        super().__init__(ffmpeg_bin)
 
         self._callback = callback
         self._changes = 10
@@ -153,7 +149,7 @@ class SensorMotion(HAFFmpegWorker):
         self._repeat = repeat
         self._changes = changes
 
-    def open_sensor(
+    async def open_sensor(
         self, input_source: str, extra_cmd: Optional[str] = None
     ) -> Coroutine:
         """Open FFmpeg process a video stream for motion detection.
@@ -167,7 +163,7 @@ class SensorMotion(HAFFmpegWorker):
         ]
 
         # run ffmpeg, read output
-        return self.start_worker(
+        return await self.start_worker(
             cmd=command,
             input_source=input_source,
             output="-f framemd5 -",
@@ -193,8 +189,8 @@ class SensorMotion(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                with async_timeout.timeout(timeout, loop=self._loop):
-                    data = await self._que.get()
+                with async_timeout.timeout(timeout):
+                    data = await self._queue.get()
                 if data is None:
                     self._loop.call_soon(self._callback, None)
                     return
