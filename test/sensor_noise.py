@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import sys
+
 import click
 
 from haffmpeg.sensor import SensorNoise
@@ -32,24 +32,25 @@ logging.basicConfig(level=logging.DEBUG)
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
 def cli(ffmpeg, source, output, duration, reset, peak, extra):
     """FFMPEG noise detection."""
-    loop = asyncio.get_event_loop()
 
     def callback(state):
         print("Noise detection is: %s" % str(state))
 
-    sensor = SensorNoise(ffmpeg_bin=ffmpeg, loop=loop, callback=callback)
-    sensor.set_options(time_duration=duration, time_reset=reset, peak=peak)
-    loop.run_until_complete(
-        sensor.open_sensor(input_source=source, output_dest=output, extra_cmd=extra)
-    )
+    async def run():
 
-    # wait
-    try:
-        loop.run_forever()
-    finally:
-        loop.run_until_complete(sensor.close())
+        sensor = SensorNoise(ffmpeg_bin=ffmpeg, callback=callback)
+        sensor.set_options(time_duration=duration, time_reset=reset, peak=peak)
+        await sensor.open_sensor(
+            input_source=source, output_dest=output, extra_cmd=extra
+        )
+        try:
+            while True:
+                await asyncio.sleep(0.1)
+        finally:
+            await sensor.close()
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":
     cli()
-

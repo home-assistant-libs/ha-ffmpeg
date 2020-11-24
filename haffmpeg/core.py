@@ -19,9 +19,9 @@ class HAFFmpeg:
     Object is iterable or use the process property to call from Popen object.
     """
 
-    def __init__(self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop):
+    def __init__(self, ffmpeg_bin: str):
         """Base initialize."""
-        self._loop = loop
+        self._loop = asyncio.get_running_loop()
         self._ffmpeg = ffmpeg_bin
         self._argv = None
         self._proc = None
@@ -172,7 +172,7 @@ class HAFFmpeg:
 
     async def get_reader(self, source=FFMPEG_STDOUT) -> asyncio.StreamReader:
         """Create and return streamreader."""
-        reader = asyncio.StreamReader(loop=self._loop)
+        reader = asyncio.StreamReader()
         reader_protocol = asyncio.StreamReaderProtocol(reader)
 
         # Attach stream
@@ -190,17 +190,17 @@ class HAFFmpeg:
 
 
 class HAFFmpegWorker(HAFFmpeg):
-    """Read FFmpeg output to que."""
+    """Read FFmpeg output to queue."""
 
-    def __init__(self, ffmpeg_bin: str, loop: asyncio.BaseEventLoop):
+    def __init__(self, ffmpeg_bin: str):
         """Init noise sensor."""
-        super().__init__(ffmpeg_bin, loop)
+        super().__init__(ffmpeg_bin)
 
-        self._que = asyncio.Queue(loop=loop)
+        self._queue = asyncio.Queue()
         self._input = None
         self._read_task = None
 
-    def close(self, timeout: int = 5) -> None:
+    async def close(self, timeout: int = 5) -> None:
         """Stop a ffmpeg instance.
 
         Return a coroutine
@@ -208,7 +208,7 @@ class HAFFmpegWorker(HAFFmpeg):
         if self._read_task is not None and not self._read_task.cancelled():
             self._read_task.cancel()
 
-        return super().close(timeout)
+        return await super().close(timeout)
 
     async def _process_lines(self, pattern: Optional[str] = None) -> None:
         """Read line from pipe they match with pattern."""
@@ -230,13 +230,13 @@ class HAFFmpegWorker(HAFFmpeg):
             match = True if pattern is None else cmp.search(line)
             if match:
                 _LOGGER.debug("Process: %s", line)
-                await self._que.put(line)
+                await self._queue.put(line)
 
         try:
             await self._loop.run_in_executor(None, self._proc.wait)
         finally:
-            await self._que.put(None)
-            _LOGGER.debug("Close read ffmpeg output.")
+            await self._queue.put(None)
+            _LOGGER.debug("Stopped reading ffmpeg output.")
 
     async def _worker_process(self) -> None:
         """Process output line."""
