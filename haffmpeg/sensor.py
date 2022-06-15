@@ -42,6 +42,7 @@ class SensorNoise(HAFFmpegWorker):
         input_source: str,
         output_dest: Optional[str] = None,
         extra_cmd: Optional[str] = None,
+        extra_input_cmd: Optional[str] = None,
     ) -> Coroutine:
         """Open FFmpeg process for read autio stream.
 
@@ -55,6 +56,7 @@ class SensorNoise(HAFFmpegWorker):
             input_source=input_source,
             output=output_dest,
             extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd,
             pattern="silence",
         )
 
@@ -150,7 +152,7 @@ class SensorMotion(HAFFmpegWorker):
         self._changes = changes
 
     async def open_sensor(
-        self, input_source: str, extra_cmd: Optional[str] = None
+        self, input_source: str, extra_cmd: Optional[str] = None, extra_input_cmd: Optional[str] = None
     ) -> Coroutine:
         """Open FFmpeg process a video stream for motion detection.
 
@@ -168,6 +170,7 @@ class SensorMotion(HAFFmpegWorker):
             input_source=input_source,
             output="-f framemd5 -",
             extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd,
             pattern=self.MATCH,
             reading=FFMPEG_STDOUT,
         )
