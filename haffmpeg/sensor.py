@@ -47,7 +47,7 @@ class SensorNoise(HAFFmpegWorker):
 
         Return a coroutine.
         """
-        command = ["-vn", "-filter:a", "silencedetect=n={}dB:d=1".format(self._peak)]
+        command = ["-vn", "-filter:a", f"silencedetect=n={self._peak}dB:d=1"]
 
         # run ffmpeg, read output
         return self.start_worker(
@@ -159,7 +159,7 @@ class SensorMotion(HAFFmpegWorker):
         command = [
             "-an",
             "-filter:v",
-            "select=gt(scene\\,{0})".format(self._changes / 100),
+            f"select=gt(scene\\,{self._changes / 100})",
         ]
 
         # run ffmpeg, read output
