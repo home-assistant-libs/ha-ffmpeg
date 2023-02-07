@@ -3,7 +3,7 @@ import logging
 
 import click
 
-from haffmpeg.sensor import SensorVolume
+from haffmpeg.sensor import MeanSensorVolume
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -20,16 +20,16 @@ logging.basicConfig(level=logging.DEBUG)
     help="Time duration to detect volume",
 )
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
-def cli(ffmpeg, source, output, duration, reset, peak, extra):
-    """FFMPEG volume detection."""
+def cli(ffmpeg, source, output, duration, extra):
+    """FFMPEG mean volume detection."""
 
     def callback(state):
-        print("Volume is: %s" % str(state))
+        print("Mean volume is: %s" % str(state))
 
     async def run():
 
-        sensor = SensorVolume(ffmpeg_bin=ffmpeg, callback=callback)
-        sensor.set_options(time_duration=duration, time_reset=reset, peak=peak)
+        sensor = MeanSensorVolume(ffmpeg_bin=ffmpeg, callback=callback)
+        sensor.set_options(time_duration=duration)
         await sensor.open_sensor(
             input_source=source, output_dest=output, extra_cmd=extra
         )

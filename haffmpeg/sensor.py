@@ -119,14 +119,15 @@ class SensorNoise(HAFFmpegWorker):
             _LOGGER.warning("Unknown data from queue!")
 
 
-class SensorVolume(HAFFmpegWorker):
+class SensorVolumeBase(HAFFmpegWorker):
     """Implement volume sensor on audio stream."""
 
-    def __init__(self, ffmpeg_bin: str, callback: Callable):
+    def __init__(self, ffmpeg_bin: str, callback: Callable, re_state: re.Pattern):
         """Init volume sensor."""
         super().__init__(ffmpeg_bin)
         self._callback = callback
         self._time_duration = 1
+        self._re_state: re.Pattern = re_state
 
     def set_options(self, time_duration: int = 1) -> None:
         """Set option parameters for volume sensor."""
@@ -153,13 +154,11 @@ class SensorVolume(HAFFmpegWorker):
         )
 
     async def _worker_process(self) -> None:
-        """This function processes stream data into a mean dB and max dB sensor."""
+        """This function extracts mean/max dB into the state sensor."""
         state: Decimal = -100
         timeout = self._time_duration
 
         self._loop.call_soon(self._callback, False)
-
-        re_mean = re.compile(r"mean_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
 
         # process queue data
         while True:
@@ -177,13 +176,31 @@ class SensorVolume(HAFFmpegWorker):
                 timeout = None
                 continue
 
-            mean_matches = re_mean.search(data)
-            if mean_matches:
-                state = Decimal(mean_matches[1])
+            match = self._re_state.search(data)
+            if match:
+                state = Decimal(match[1])
                 self._loop.call_soon(self._callback, state)
                 continue
 
             _LOGGER.warning("Unknown data from queue!")
+
+
+class MeanSensorVolume(SensorVolumeBase):
+    """Implement a mean volume sensor."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
+        """Init mean volume sensor."""
+        re_state = re.compile(r"mean_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
+        super().__init__(ffmpeg_bin, callback, re_state)
+
+
+class MaxSensorVolume(SensorVolumeBase):
+    """Implement a max volume sensor."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
+        """Init max volume sensor."""
+        re_state = re.compile(r"max_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
+        super().__init__(ffmpeg_bin, callback, re_state)
 
 
 class SensorMotion(HAFFmpegWorker):
