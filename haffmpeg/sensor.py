@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SensorNoise(HAFFmpegWorker):
-    """Implement a noise detection on a autio stream."""
+    """Implement a noise detection on a audio stream."""
 
     STATE_NONE = 0
     STATE_NOISE = 1
@@ -42,7 +42,7 @@ class SensorNoise(HAFFmpegWorker):
         output_dest: Optional[str] = None,
         extra_cmd: Optional[str] = None,
     ) -> Coroutine:
-        """Open FFmpeg process for read autio stream.
+        """Open FFmpeg process for read audio stream.
 
         Return a coroutine.
         """
