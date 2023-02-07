@@ -4,6 +4,9 @@ import logging
 import re
 from time import time
 from typing import Callable, Coroutine, Optional
+from decimal import Decimal
+
+import async_timeout
 
 from .core import FFMPEG_STDOUT, HAFFmpegWorker
 from .timeout import asyncio_timeout
@@ -111,6 +114,73 @@ class SensorNoise(HAFFmpegWorker):
                 elif state == self.STATE_END:
                     # back to noise status
                     state = self.STATE_NOISE
+                continue
+
+            _LOGGER.warning("Unknown data from queue!")
+
+
+class SensorVolume(HAFFmpegWorker):
+    """Implement volume sensor on audio stream."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
+        """Init volume sensor."""
+        super().__init__(ffmpeg_bin)
+        self._callback = callback
+        self._time_duration = 1
+
+    def set_options(self, time_duration: int = 1) -> None:
+        """Set option parameters for volume sensor."""
+        self._time_duration = time_duration
+
+    def open_sensor(
+        self,
+        input_source: str,
+        output_dest: Optional[str] = None,
+        extra_cmd: Optional[str] = None,
+    ) -> Coroutine:
+        """Open FFmpeg process for read audio stream.
+
+        Return a coroutine.
+        """
+        command = ["-vn", "-filter:a", "volumedetect"]
+
+        # run ffmpeg, read output
+        return self.start_worker(
+            cmd=command,
+            input_source=input_source,
+            output=output_dest,
+            extra_cmd=extra_cmd,
+        )
+
+    async def _worker_process(self) -> None:
+        """This function processes stream data into a mean dB and max dB sensor."""
+        state: Decimal = -100
+        timeout = self._time_duration
+
+        self._loop.call_soon(self._callback, False)
+
+        re_mean = re.compile(r"mean_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
+
+        # process queue data
+        while True:
+            try:
+                _LOGGER.debug("Reading mean: %ddB state with timeout: %s", state, timeout)
+                with async_timeout.timeout(timeout):
+                    data = await self._queue.get()
+                timeout = None
+                if data is None:
+                    self._loop.call_soon(self._callback, None)
+                    return
+            except asyncio.TimeoutError:
+                _LOGGER.debug("Blocking timeout")
+                self._loop.call_soon(self._callback, None)
+                timeout = None
+                continue
+
+            mean_matches = re_mean.search(data)
+            if mean_matches:
+                state = Decimal(mean_matches[1])
+                self._loop.call_soon(self._callback, state)
                 continue
 
             _LOGGER.warning("Unknown data from queue!")
