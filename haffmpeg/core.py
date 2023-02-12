@@ -132,6 +132,7 @@ class HAFFmpeg:
                 stdin=subprocess.PIPE,
                 stdout=stdout,
                 stderr=stderr,
+                close_fds=False,
             )
             self._proc = await self._loop.run_in_executor(None, proc_func)
         except Exception as err:  # pylint: disable=broad-except
