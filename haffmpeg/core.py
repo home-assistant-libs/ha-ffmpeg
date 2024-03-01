@@ -1,16 +1,18 @@
 """Base functionality of ffmpeg HA wrapper."""
 import asyncio
-import functools
 import logging
 import re
 import shlex
-import subprocess
-from typing import List, Optional
+from typing import List, Optional, Set
+
+from .timeout import asyncio_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
 FFMPEG_STDOUT = "stdout"
 FFMPEG_STDERR = "stderr"
+
+_BACKGROUND_TASKS: Set[asyncio.Task] = set()
 
 
 class HAFFmpeg:
@@ -24,10 +26,10 @@ class HAFFmpeg:
         self._loop = asyncio.get_running_loop()
         self._ffmpeg = ffmpeg_bin
         self._argv = None
-        self._proc = None
+        self._proc: Optional["asyncio.subprocess.Process"] = None
 
     @property
-    def process(self) -> subprocess.Popen:
+    def process(self) -> "asyncio.subprocess.Process":
         """Return a Popen object or None of not running."""
         return self._proc
 
@@ -112,8 +114,8 @@ class HAFFmpeg:
         stderr_pipe: bool = False,
     ) -> bool:
         """Start a ffmpeg instance and pipe output."""
-        stdout = subprocess.PIPE if stdout_pipe else subprocess.DEVNULL
-        stderr = subprocess.PIPE if stderr_pipe else subprocess.DEVNULL
+        stdout = asyncio.subprocess.PIPE if stdout_pipe else asyncio.subprocess.DEVNULL
+        stderr = asyncio.subprocess.PIPE if stderr_pipe else asyncio.subprocess.DEVNULL
 
         if self.is_running:
             _LOGGER.warning("FFmpeg is already running!")
@@ -125,16 +127,14 @@ class HAFFmpeg:
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
         try:
-            proc_func = functools.partial(
-                subprocess.Popen,
-                self._argv,
+            self._proc = await asyncio.create_subprocess_exec(
+                *self._argv,
                 bufsize=0,
-                stdin=subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=stdout,
                 stderr=stderr,
                 close_fds=False,
             )
-            self._proc = await self._loop.run_in_executor(None, proc_func)
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.exception("FFmpeg fails %s", err)
             self._clear()
@@ -149,17 +149,14 @@ class HAFFmpeg:
             return
 
         # Can't use communicate because we attach the output to a streamreader
-        def _close():
-            """Close ffmpeg."""
-            self._proc.stdin.write(b"q")
-            self._proc.wait(timeout=timeout)
-
         # send stop to ffmpeg
         try:
-            await self._loop.run_in_executor(None, _close)
+            self._proc.stdin.write(b"q")
+            async with asyncio_timeout(timeout):
+                await self._proc.wait()
             _LOGGER.debug("Close FFmpeg process")
 
-        except (subprocess.TimeoutExpired, ValueError):
+        except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout while waiting of FFmpeg")
             self.kill()
 
@@ -169,25 +166,15 @@ class HAFFmpeg:
     def kill(self) -> None:
         """Kill ffmpeg job."""
         self._proc.kill()
-        self._loop.run_in_executor(None, self._proc.communicate)
+        background_task = asyncio.create_task(self._proc.communicate())
+        _BACKGROUND_TASKS.add(background_task)
+        background_task.add_done_callback(_BACKGROUND_TASKS.remove)
 
     async def get_reader(self, source=FFMPEG_STDOUT) -> asyncio.StreamReader:
         """Create and return streamreader."""
-        reader = asyncio.StreamReader()
-        reader_protocol = asyncio.StreamReaderProtocol(reader)
-
-        # Attach stream
         if source == FFMPEG_STDOUT:
-            await self._loop.connect_read_pipe(
-                lambda: reader_protocol, self._proc.stdout
-            )
-        else:
-            await self._loop.connect_read_pipe(
-                lambda: reader_protocol, self._proc.stderr
-            )
-
-        # Start reader
-        return reader
+            return self._proc.stdout
+        return self._proc.stderr
 
 
 class HAFFmpegWorker(HAFFmpeg):
@@ -234,7 +221,7 @@ class HAFFmpegWorker(HAFFmpeg):
                 await self._queue.put(line)
 
         try:
-            await self._loop.run_in_executor(None, self._proc.wait)
+            await self._proc.wait()
         finally:
             await self._queue.put(None)
             _LOGGER.debug("Stopped reading ffmpeg output.")
