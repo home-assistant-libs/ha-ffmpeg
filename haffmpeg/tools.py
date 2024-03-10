@@ -1,11 +1,11 @@
 """For HA varios tools."""
-import functools
+import asyncio
 import logging
 import re
-import subprocess
 from typing import Optional
 
 from .core import HAFFmpeg
+from .timeout import asyncio_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,12 +40,13 @@ class ImageFrame(HAFFmpeg):
             return None
 
         # read image
+
         try:
-            proc_func = functools.partial(self._proc.communicate, timeout=timeout)
-            image, _ = await self._loop.run_in_executor(None, proc_func)
+            async with asyncio_timeout(timeout):
+                image, _ = await self._proc.communicate()
             return image
 
-        except (subprocess.TimeoutExpired, ValueError):
+        except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout reading image.")
             self.kill()
             return None
@@ -71,14 +72,14 @@ class FFVersion(HAFFmpeg):
 
         # read output
         try:
-            proc_func = functools.partial(self._proc.communicate, timeout=timeout)
-            output, _ = await self._loop.run_in_executor(None, proc_func)
+            async with asyncio_timeout(timeout):
+                output, _ = await self._proc.communicate()
 
             result = re.search(r"ffmpeg version (\S*)", output.decode())
             if result is not None:
                 return result.group(1)
 
-        except (subprocess.TimeoutExpired, ValueError):
+        except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout reading stdout.")
             self.kill()
 

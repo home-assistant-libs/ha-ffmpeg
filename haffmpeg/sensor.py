@@ -3,11 +3,10 @@ import asyncio
 import logging
 import re
 from time import time
-from typing import Callable, Optional, Coroutine
-
-import async_timeout
+from typing import Callable, Coroutine, Optional
 
 from .core import FFMPEG_STDOUT, HAFFmpegWorker
+from .timeout import asyncio_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class SensorNoise(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                with async_timeout.timeout(timeout):
+                async with asyncio_timeout(timeout):
                     data = await self._queue.get()
                 timeout = None
                 if data is None:
@@ -189,7 +188,7 @@ class SensorMotion(HAFFmpegWorker):
         while True:
             try:
                 _LOGGER.debug("Reading State: %d, timeout: %s", state, timeout)
-                with async_timeout.timeout(timeout):
+                async with asyncio_timeout(timeout):
                     data = await self._queue.get()
                 if data is None:
                     self._loop.call_soon(self._callback, None)
