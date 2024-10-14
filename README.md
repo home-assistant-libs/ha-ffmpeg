@@ -6,4 +6,4 @@ A Python library to control ffmepg from asyncio for [Home Assistant](https://www
 - Analyse a video/audio stream for noise or motion detection
 - Grab image from a stream
 
-Be careful that you protect function calls to this library with `asyncio.shield`.
+Take care to protect function calls to this library with `asyncio.shield`.
