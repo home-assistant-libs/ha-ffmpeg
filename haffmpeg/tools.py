@@ -51,6 +51,9 @@ class ImageFrame(HAFFmpeg):
             self.kill()
             return None
 
+        finally:
+            await self.close(0)
+
 
 class FFVersion(HAFFmpeg):
     """Retrieve FFmpeg version information."""
@@ -82,5 +85,8 @@ class FFVersion(HAFFmpeg):
         except (asyncio.TimeoutError, ValueError):
             _LOGGER.warning("Timeout reading stdout.")
             self.kill()
+
+        finally:
+            await self.close(0)
 
         return None
