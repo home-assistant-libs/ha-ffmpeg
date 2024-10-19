@@ -8,7 +8,7 @@ class CameraMjpeg(HAFFmpeg):
     """Implement a camera they convert video stream to MJPEG."""
 
     def open_camera(
-        self, input_source: str, extra_cmd: Optional[str] = None
+        self, input_source: str, extra_cmd: Optional[str] = None, extra_input_cmd: Optional[str] = None
     ) -> Coroutine:
         """Open FFmpeg process as mjpeg video stream.
 
@@ -21,4 +21,5 @@ class CameraMjpeg(HAFFmpeg):
             input_source=input_source,
             output="-f mpjpeg -",
             extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd
         )
