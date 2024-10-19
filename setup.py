@@ -3,7 +3,7 @@ from setuptools import setup
 with open('README.md') as f:
     long_description = f.read()
 
-VERSION = "3.2.0"
+VERSION = "3.2.1"
 
 setup(
     name='ha-ffmpeg',
