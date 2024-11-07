@@ -145,7 +145,7 @@ class HAFFmpeg:
     async def close(self, timeout=5) -> None:
         """Stop a ffmpeg instance."""
         if not self.is_running:
-            _LOGGER.warning("FFmpeg isn't running!")
+            _LOGGER.debug("FFmpeg isn't running!")
             return
 
         # Can't use communicate because we attach the output to a streamreader
