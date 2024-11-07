@@ -52,7 +52,8 @@ class ImageFrame(HAFFmpeg):
             return None
 
         finally:
-            await self.close(0)
+            if self.is_running:
+                await self.close(0)
 
 
 class FFVersion(HAFFmpeg):
@@ -87,6 +88,7 @@ class FFVersion(HAFFmpeg):
             self.kill()
 
         finally:
-            await self.close(0)
+            if self.is_running:
+                await self.close(0)
 
         return None
