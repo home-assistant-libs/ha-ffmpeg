@@ -215,6 +215,7 @@ class HAFFmpegWorker(HAFFmpeg):
             except Exception:  # pylint: disable=broad-except
                 break
 
+            # pylint: disable-next=possibly-used-before-assignment
             match = True if pattern is None else cmp.search(line)
             if match:
                 _LOGGER.debug("Process: %s", line)
