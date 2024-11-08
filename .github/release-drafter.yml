@@ -8,6 +8,6 @@ categories:
     labels:
       - "dependencies"
 template: |
-  ## What’s Changed
+  ## What's Changed
 
   $CHANGES
