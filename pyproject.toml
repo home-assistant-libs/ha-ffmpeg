@@ -6,7 +6,7 @@ requires = ["setuptools>=77.0"]
 name = "ha-ffmpeg"
 version = "3.2.2"
 license = "BSD-3-Clause"
-description = "A library that handling with ffmpeg for home-assistant"
+description = "A library handling ffmpeg for home-assistant"
 readme = "README.md"
 authors = [{ name = "Pascal Vizeli", email = "pvizeli@syshack.ch" }]
 keywords=["ffmpeg", "homeassistant", "wrapper", "api"]
@@ -25,10 +25,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Source code" = "https://github.com/pvizeli/ha-ffmpeg"
-
-[tool.setuptools]
-include-package-data = true
+"Source code" = "https://github.com/home-assistant-libs/ha-ffmpeg"
 
 [tool.setuptools.packages.find]
 include = ["haffmpeg*"]
