@@ -1,0 +1,28 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "ha-ffmpeg"
+version = "3.2.2"
+license = "BSD-3-Clause"
+description = "A library handling ffmpeg for home-assistant"
+readme = "README.md"
+authors = [{ name = "Pascal Vizeli", email = "pvizeli@syshack.ch" }]
+keywords=["ffmpeg", "homeassistant", "wrapper", "api"]
+requires-python = ">=3.9"
+classifiers=[
+  "Programming Language :: Python",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+  "Operating System :: OS Independent",
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.9",
+]
+dependencies = [
+  "async_timeout;python_version<'3.11'"
+]
+
+[project.urls]
+"Source code" = "https://github.com/home-assistant-libs/ha-ffmpeg"
