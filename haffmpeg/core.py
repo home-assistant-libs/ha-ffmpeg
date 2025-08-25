@@ -46,16 +46,21 @@ class HAFFmpeg:
         input_source: Optional[str],
         output: Optional[str],
         extra_cmd: Optional[str] = None,
+        extra_input_cmd: Optional[str] = None
     ) -> None:
         """Generate ffmpeg command line."""
         self._argv = [self._ffmpeg]
+
+        # exists an extra cmd from customer
+        if extra_input_cmd is not None:
+            self._argv.extend(shlex.split(extra_input_cmd))
 
         # start command init
         if input_source is not None:
             self._put_input(input_source)
         self._argv.extend(cmd)
 
-        # exists a extra cmd from customer
+        # exists an extra cmd from customer
         if extra_cmd is not None:
             self._argv.extend(shlex.split(extra_cmd))
 
@@ -110,8 +115,9 @@ class HAFFmpeg:
         input_source: Optional[str],
         output: Optional[str] = "-",
         extra_cmd: Optional[str] = None,
+        extra_input_cmd=None,
         stdout_pipe: bool = True,
-        stderr_pipe: bool = False,
+        stderr_pipe: bool = False
     ) -> bool:
         """Start a ffmpeg instance and pipe output."""
         stdout = asyncio.subprocess.PIPE if stdout_pipe else asyncio.subprocess.DEVNULL
@@ -122,7 +128,13 @@ class HAFFmpeg:
             return True
 
         # set command line
-        self._generate_ffmpeg_cmd(cmd, input_source, output, extra_cmd)
+        self._generate_ffmpeg_cmd(
+            cmd=cmd,
+            input_source=input_source,
+            output=output,
+            extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd,
+        )
 
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
@@ -237,6 +249,7 @@ class HAFFmpegWorker(HAFFmpeg):
         input_source: str,
         output: Optional[str] = None,
         extra_cmd: Optional[str] = None,
+        extra_input_cmd=None,
         pattern: Optional[str] = None,
         reading: str = FFMPEG_STDERR,
     ) -> None:
@@ -258,6 +271,7 @@ class HAFFmpegWorker(HAFFmpeg):
             input_source=input_source,
             output=output,
             extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd,
             stdout_pipe=stdout,
             stderr_pipe=stderr,
         )
