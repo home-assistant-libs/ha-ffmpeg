@@ -4,6 +4,9 @@ import logging
 import re
 from time import time
 from typing import Callable, Coroutine, Optional
+from decimal import Decimal
+
+import async_timeout
 
 from .core import FFMPEG_STDOUT, HAFFmpegWorker
 from .timeout import asyncio_timeout
@@ -12,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SensorNoise(HAFFmpegWorker):
-    """Implement a noise detection on a autio stream."""
+    """Implement a noise detection on a audio stream."""
 
     STATE_NONE = 0
     STATE_NOISE = 1
@@ -42,7 +45,7 @@ class SensorNoise(HAFFmpegWorker):
         output_dest: Optional[str] = None,
         extra_cmd: Optional[str] = None,
     ) -> Coroutine:
-        """Open FFmpeg process for read autio stream.
+        """Open FFmpeg process for read audio stream.
 
         Return a coroutine.
         """
@@ -114,6 +117,90 @@ class SensorNoise(HAFFmpegWorker):
                 continue
 
             _LOGGER.warning("Unknown data from queue!")
+
+
+class SensorVolumeBase(HAFFmpegWorker):
+    """Implement volume sensor on audio stream."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable, re_state: re.Pattern):
+        """Init volume sensor."""
+        super().__init__(ffmpeg_bin)
+        self._callback = callback
+        self._time_duration = 1
+        self._re_state: re.Pattern = re_state
+
+    def set_options(self, time_duration: int = 1) -> None:
+        """Set option parameters for volume sensor."""
+        self._time_duration = time_duration
+
+    def open_sensor(
+        self,
+        input_source: str,
+        output_dest: Optional[str] = None,
+        extra_cmd: Optional[str] = None,
+    ) -> Coroutine:
+        """Open FFmpeg process for read audio stream.
+
+        Return a coroutine.
+        """
+        command = ["-vn", "-filter:a", "volumedetect"]
+
+        # run ffmpeg, read output
+        return self.start_worker(
+            cmd=command,
+            input_source=input_source,
+            output=output_dest,
+            extra_cmd=extra_cmd,
+        )
+
+    async def _worker_process(self) -> None:
+        """This function extracts mean/max dB into the state sensor."""
+        state: Decimal = -100
+        timeout = self._time_duration
+
+        self._loop.call_soon(self._callback, False)
+
+        # process queue data
+        while True:
+            try:
+                _LOGGER.debug("Reading mean: %ddB state with timeout: %s", state, timeout)
+                with async_timeout.timeout(timeout):
+                    data = await self._queue.get()
+                timeout = None
+                if data is None:
+                    self._loop.call_soon(self._callback, None)
+                    return
+            except asyncio.TimeoutError:
+                _LOGGER.debug("Blocking timeout")
+                self._loop.call_soon(self._callback, None)
+                timeout = None
+                continue
+
+            match = self._re_state.search(data)
+            if match:
+                state = Decimal(match[1])
+                self._loop.call_soon(self._callback, state)
+                continue
+
+            _LOGGER.warning("Unknown data from queue!")
+
+
+class MeanSensorVolume(SensorVolumeBase):
+    """Implement a mean volume sensor."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
+        """Init mean volume sensor."""
+        re_state = re.compile(r"mean_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
+        super().__init__(ffmpeg_bin, callback, re_state)
+
+
+class MaxSensorVolume(SensorVolumeBase):
+    """Implement a max volume sensor."""
+
+    def __init__(self, ffmpeg_bin: str, callback: Callable):
+        """Init max volume sensor."""
+        re_state = re.compile(r"max_volume: (\-\d{1,3}(\.\d{1,2})?) dB")
+        super().__init__(ffmpeg_bin, callback, re_state)
 
 
 class SensorMotion(HAFFmpegWorker):
