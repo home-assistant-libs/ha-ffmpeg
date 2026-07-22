@@ -10,7 +10,7 @@ description = "A library handling ffmpeg for home-assistant"
 readme = "README.md"
 authors = [{ name = "Pascal Vizeli", email = "pvizeli@syshack.ch" }]
 keywords=["ffmpeg", "homeassistant", "wrapper", "api"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers=[
   "Programming Language :: Python",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -18,7 +18,7 @@ classifiers=[
   "Operating System :: OS Independent",
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
-  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
 ]
 dependencies = [
   "async_timeout;python_version<'3.11'"
