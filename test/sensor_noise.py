@@ -30,7 +30,8 @@ logging.basicConfig(level=logging.DEBUG)
     "--peak", "-p", default=-30, type=int, help="dB for detect a peak. Default -30"
 )
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
-def cli(ffmpeg, source, output, duration, reset, peak, extra):
+@click.option("--extra-input", "-E", help="Extra ffmpeg command line arguments for input")
+def cli(ffmpeg, source, output, duration, reset, peak, extra, extra_input):
     """FFMPEG noise detection."""
 
     def callback(state):
@@ -41,7 +42,7 @@ def cli(ffmpeg, source, output, duration, reset, peak, extra):
         sensor = SensorNoise(ffmpeg_bin=ffmpeg, callback=callback)
         sensor.set_options(time_duration=duration, time_reset=reset, peak=peak)
         await sensor.open_sensor(
-            input_source=source, output_dest=output, extra_cmd=extra
+            input_source=source, output_dest=output, extra_cmd=extra, extra_input_cmd=extra_input
         )
         try:
             while True:

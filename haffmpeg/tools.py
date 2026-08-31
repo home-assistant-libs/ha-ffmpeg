@@ -21,6 +21,7 @@ class ImageFrame(HAFFmpeg):
         input_source: str,
         output_format: str = IMAGE_JPEG,
         extra_cmd: Optional[str] = None,
+        extra_input_cmd: Optional[str] = None,
         timeout: int = 15,
     ) -> Optional[bytes]:
         """Open FFmpeg process as capture 1 frame."""
@@ -32,6 +33,7 @@ class ImageFrame(HAFFmpeg):
             input_source=input_source,
             output="-f image2pipe -",
             extra_cmd=extra_cmd,
+            extra_input_cmd=extra_input_cmd,
         )
 
         # error after open?
