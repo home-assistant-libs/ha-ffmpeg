@@ -13,13 +13,14 @@ logging.basicConfig(level=logging.DEBUG)
 @click.option("--source", "-s", help="Input file for ffmpeg")
 @click.option("--output", "-o", help="Output image path")
 @click.option("--extra", "-e", help="Extra ffmpeg command line arguments")
-def cli(ffmpeg, source, output, extra):
+@click.option("--extra-input", "-E", help="Extra ffmpeg command line arguments for input")
+def cli(ffmpeg, source, output, extra, extra_input):
     """FFMPEG capture frame as image."""
 
     async def read_stream():
         """Read stream inside loop."""
         stream = CameraMjpeg(ffmpeg_bin=ffmpeg)
-        await stream.open_camera(source, extra)
+        await stream.open_camera(input_source=source, extra_cmd=extra, extra_input_cmd=extra_input)
 
         reader = await stream.get_reader()
         try:
