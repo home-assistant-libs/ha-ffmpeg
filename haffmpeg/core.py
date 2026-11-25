@@ -46,9 +46,14 @@ class HAFFmpeg:
         input_source: Optional[str],
         output: Optional[str],
         extra_cmd: Optional[str] = None,
+        input_cmd: Optional[str] = None,
     ) -> None:
         """Generate ffmpeg command line."""
         self._argv = [self._ffmpeg]
+
+        # input options must precede the input they apply to
+        if input_cmd is not None:
+            self._argv.extend(shlex.split(input_cmd))
 
         # start command init
         if input_source is not None:
@@ -112,6 +117,7 @@ class HAFFmpeg:
         extra_cmd: Optional[str] = None,
         stdout_pipe: bool = True,
         stderr_pipe: bool = False,
+        input_cmd: Optional[str] = None,
     ) -> bool:
         """Start a ffmpeg instance and pipe output."""
         stdout = asyncio.subprocess.PIPE if stdout_pipe else asyncio.subprocess.DEVNULL
@@ -122,7 +128,7 @@ class HAFFmpeg:
             return True
 
         # set command line
-        self._generate_ffmpeg_cmd(cmd, input_source, output, extra_cmd)
+        self._generate_ffmpeg_cmd(cmd, input_source, output, extra_cmd, input_cmd)
 
         # start ffmpeg
         _LOGGER.debug("Start FFmpeg with %s", str(self._argv))
